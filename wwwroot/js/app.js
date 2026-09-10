@@ -204,7 +204,7 @@
     $('show-results').hidden = game.phase !== 'Results' || !room.resultsLeaderboardOpen;
     $('end-results').hidden = game.phase !== 'Results' || !room.quickPlay;
     const state = game.state;
-    const key = [game.id,game.phase,game.phase==='Results' ? `${room.resultsLeaderboardOpen}:${room.resultsElapsedMs}` : '',game.kind==='reaction'?state.go:'',game.kind==='bomb'?state.holder:'',game.kind==='wheel'?state.selectedIndex:'',game.kind==='math'?state.question:'',game.kind==='duel'?`${state.attempt}:${state.tie}:${JSON.stringify(state.choices)}`:''].join(':');
+    const key = [game.id,game.phase,game.phase==='Results' ? `${room.resultsLeaderboardOpen}:${room.resultsElapsedMs}` : '',game.kind==='reaction'?state.go:'',game.kind==='bomb'?state.holder:'',game.kind==='wheel'?state.selectedIndex:'',game.kind==='math'?state.question:'',game.kind==='catch'?JSON.stringify(state.hits):'',game.kind==='duel'?`${state.attempt}:${state.tie}:${JSON.stringify(state.choices)}`:''].join(':');
     if (key !== renderKey) {
       renderKey = key;
       let html = '';
