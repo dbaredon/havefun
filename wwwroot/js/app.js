@@ -167,8 +167,10 @@
     const roundBoard = `<section class="scoreboard"><h2>Rundens leaderboard</h2>${game.results.map((r,i)=>`<div class="score-line"><span>${r.rank}. ${escape(r.name)}</span><span>${r.points ? `+${r.points} point · ` : ''}${escape(r.detail)}</span></div>`).join('')}</section>`;
     const totalBoard = `<section class="scoreboard"><h2>Samlet leaderboard</h2><p class="muted">Point fra alle runder</p>${[...room.players].sort((a,b)=>b.score-a.score).map((p,i)=>`<div class="score-line"><span>${i+1}. ${escape(p.name)}</span><strong>${p.score} point</strong></div>`).join('')}</section>`;
     const spotlightResults = [top, [...game.results].reverse().find(r => r.playerId !== top?.playerId) || top].filter(Boolean);
+    const drinkers = game.results.slice(-2).map(r => escape(r.name)).join(' & ');
+    const drinkingMessage = game.results.length > 1 ? `<div class="notice" style="text-align:center"><strong>${drinkers}, skål!</strong><br />Tag en tår for holdet.</div>` : '';
     const spotlight = `<div class="results-list">${spotlightResults.map((r,i)=>`<div class="result-row ${i===0?'winner':'bottom'}"><span class="rank">${i===0?'✦':'!'}</span><div class="result-person"><strong>${escape(r.name)}</strong>${r.points?`<small>+${r.points} point</small>`:''}</div><div class="result-detail">${escape(r.detail)}</div></div>`).join('')}</div>`;
-    const body = room.resultsLeaderboardOpen ? `${roundBoard}${totalBoard}` : `${duelReveal}${spotlight}<p class="muted" style="text-align:center">Se leaderboardet, når I vil.</p>`;
+    const body = room.resultsLeaderboardOpen ? `${roundBoard}${totalBoard}` : `${duelReveal}${spotlight}${drinkingMessage}<p class="muted" style="text-align:center">Se leaderboardet, når I vil.</p>`;
     return `<div class="results-title"><div class="eyebrow">RUNDE ${room.round} · ${games[game.kind][0]}</div><h1>${title}</h1>${game.kind==='math'?`<p class="muted">${escape(game.state.expression)} = ${game.state.answer}</p>`:''}</div>${body}`;
   }
   function renderHost() {

@@ -128,7 +128,7 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
         {
             if (i > 0 && (r.Value != results[i - 1].Value || r.Valid != results[i - 1].Valid)) rank = i + 1;
             var winner = !isEvent && r.Valid && rank == 1;
-            var bottom = isEvent ? r.Affected : !winner && i >= Math.Max(1, results.Count - 3);
+            var bottom = isEvent ? r.Affected : !winner && i >= Math.Max(1, results.Count - 2);
             var points = !isEvent && r.Valid ? Math.Max(0, 4 - rank) : 0;
             return new RankedResult(r.PlayerId, room.Players[r.PlayerId].Name, rank, r.Value, r.Detail, r.Valid, winner, bottom, points);
         }).ToList();
