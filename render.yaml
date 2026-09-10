@@ -27,5 +27,4 @@ databases:
     plan: free
     region: frankfurt
     postgresMajorVersion: "17"
-    diskSizeGB: 1
     ipAllowList: []
