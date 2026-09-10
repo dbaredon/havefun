@@ -24,7 +24,7 @@ databases:
   - name: gnist-db
     databaseName: gnist
     user: gnist
-    plan: 0.1c-256mb
+    plan: free
     region: frankfurt
     postgresMajorVersion: "17"
     diskSizeGB: 1

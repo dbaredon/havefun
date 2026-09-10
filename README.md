@@ -23,7 +23,7 @@ Forsiden vises også uden en spilserver. I så fald vises beskeden »Spillet er 
 
 Pages viser UI'et; .NET-serveren håndterer rum, QR-koder og live-input:
 
-1. Log ind på [Render](https://dashboard.render.com) med GitHub. Vælg **New → Blueprint**, og forbind repositoryet. Den medfølgende `render.yaml` opretter en .NET-container på Free-planen og en **betalt PostgreSQL-database** (`0.1c-256mb`). Gennemgå prisen i Render før oprettelse. Har du allerede et Blueprint, synkronisér det efter push; databasen forbindes automatisk via `DATABASE_URL`. Docker skal ikke installeres lokalt.
+1. Log ind på [Render](https://dashboard.render.com) med GitHub. Vælg **New → Blueprint**, og forbind repositoryet. Den medfølgende `render.yaml` opretter en .NET-container og en **gratis PostgreSQL-database**. Gratis PostgreSQL har 1 GB lager og udløber efter 30 dage, hvis den ikke opgraderes. Har du allerede et Blueprint, synkronisér det efter push; databasen forbindes automatisk via `DATABASE_URL`. Docker skal ikke installeres lokalt.
 2. Når serveren viser **Live**, kopiér dens HTTPS-adresse, fx `https://gnist-xxxx.onrender.com`. Kontroller, at `/health` svarer med `{"status":"ok"}`.
 3. På GitHub: **Settings → Secrets and variables → Actions → Variables → New repository variable**. Navn: **`GNIST_API_URL`**. Værdi: serveradressen uden ekstra sti. Det er en offentlig adresse, ikke en secret.
 4. Kør **Publish UI to GitHub Pages** igen. Ændring af en repository-variable starter ikke selv et workflow.
