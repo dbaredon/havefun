@@ -43,7 +43,7 @@ public class GameTests
 
     [Fact] public void MathRanksCorrectAboveFastWrongAndIgnoresDuplicates()
     {
-        var game=new QuickMath(Players,Now,new("7 + 13",20));
+        var game=new QuickMath(Players,Now,new MathProblem("7 + 13",20));
         Act(game,"a","answer",game.StartsAt.AddSeconds(1),"19");
         Act(game,"a","answer",game.StartsAt.AddSeconds(2),"20");
         Act(game,"b","answer",game.StartsAt.AddSeconds(3),"20");
@@ -53,7 +53,7 @@ public class GameTests
     }
     [Fact] public void MathDoesNotExposeAnswerWhilePlaying()
     {
-        var game=new QuickMath(Players,Now,new("7 + 13",20));
+        var game=new QuickMath(Players,Now,new MathProblem("7 + 13",20));
         Assert.Contains("\"answer\":null",System.Text.Json.JsonSerializer.Serialize(game.PublicState(game.StartsAt)));
     }
     [Fact] public void TimingRanksAbsoluteDifferenceAndIgnoresSecondStop()

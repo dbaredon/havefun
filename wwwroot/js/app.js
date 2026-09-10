@@ -127,6 +127,7 @@
   $('back-lobby')?.addEventListener('click', () => invoke('Lobby'));
   $('show-leaderboard')?.addEventListener('click', () => invoke('ShowLeaderboard'));
   $('show-results')?.addEventListener('click', () => invoke('ShowResults'));
+  $('end-results')?.addEventListener('click', () => invoke('EndResults'));
   $('copy-link')?.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(site.route('join', code)); toast('Invitationslinket er kopieret.'); }
     catch { toast(`Invitér vennerne: ${site.route('join', code)}`); }
@@ -166,8 +167,9 @@
     const roundBoard = `<section class="scoreboard"><h2>Rundens leaderboard</h2>${game.results.map((r,i)=>`<div class="score-line"><span>${r.rank}. ${escape(r.name)}</span><span>${r.points ? `+${r.points} point · ` : ''}${escape(r.detail)}</span></div>`).join('')}</section>`;
     const totalBoard = `<section class="scoreboard"><h2>Samlet leaderboard</h2><p class="muted">Point fra alle runder</p>${[...room.players].sort((a,b)=>b.score-a.score).map((p,i)=>`<div class="score-line"><span>${i+1}. ${escape(p.name)}</span><strong>${p.score} point</strong></div>`).join('')}</section>`;
     const spotlightResults = [top, [...game.results].reverse().find(r => r.playerId !== top?.playerId) || top].filter(Boolean);
-    const drinkers = game.results.slice(-2).map(r => escape(r.name)).join(' & ');
-    const drinkingMessage = game.results.length > 1 ? `<div class="notice" style="text-align:center"><strong>${drinkers}, skål!</strong><br />Tag en tår for holdet.</div>` : '';
+    const drinkerResults = game.kind === 'bomb' ? game.results.filter(r => r.bottom) : game.kind === 'wheel' ? [] : game.results.slice(-2);
+    const drinkers = drinkerResults.map(r => escape(r.name)).join(' & ');
+    const drinkingMessage = drinkerResults.length ? `<div class="notice drinking-message"><strong>${drinkers}, skål!</strong><br />Tag en tår for holdet.</div>` : '';
     const spotlight = `<div class="results-list">${spotlightResults.map((r,i)=>`<div class="result-row ${i===0?'winner':'bottom'}"><span class="rank">${i===0?'✦':'!'}</span><div class="result-person"><strong>${escape(r.name)}</strong>${r.points?`<small>+${r.points} point</small>`:''}</div><div class="result-detail">${escape(r.detail)}</div></div>`).join('')}</div>`;
     const body = room.resultsLeaderboardOpen ? totalBoard : `${duelReveal}${spotlight}${drinkingMessage}<p class="muted" style="text-align:center">Se leaderboardet, når I vil.</p>`;
     return `<div class="results-title"><div class="eyebrow">RUNDE ${room.round} · ${games[game.kind][0]}</div><h1>${title}</h1>${game.kind==='math'?`<p class="muted">${escape(game.state.expression)} = ${game.state.answer}</p>`:''}</div>${body}`;
@@ -198,8 +200,9 @@
     $('result-actions').hidden = game.phase !== 'Results';
     $('show-leaderboard').hidden = game.phase !== 'Results' || room.resultsLeaderboardOpen;
     $('show-results').hidden = game.phase !== 'Results' || !room.resultsLeaderboardOpen;
+    $('end-results').hidden = game.phase !== 'Results' || !room.quickPlay;
     const state = game.state;
-    const key = [game.id,game.phase,game.phase==='Results' ? `${room.resultsLeaderboardOpen}:${room.resultsElapsedMs}` : '',game.kind==='reaction'?state.go:'',game.kind==='bomb'?state.holder:'',game.kind==='duel'?`${state.attempt}:${state.tie}:${JSON.stringify(state.choices)}`:''].join(':');
+    const key = [game.id,game.phase,game.phase==='Results' ? `${room.resultsLeaderboardOpen}:${room.resultsElapsedMs}` : '',game.kind==='reaction'?state.go:'',game.kind==='bomb'?state.holder:'',game.kind==='wheel'?state.selectedIndex:'',game.kind==='math'?state.question:'',game.kind==='duel'?`${state.attempt}:${state.tie}:${JSON.stringify(state.choices)}`:''].join(':');
     if (key !== renderKey) {
       renderKey = key;
       let html = '';
@@ -210,7 +213,7 @@
         case 'cookie': html = heading(game,'Hvem har de hurtigste fingre?')+'<div id="live-leaderboard" class="leaderboard"></div>'; break;
         case 'timing': html = heading(game,'Ingen ure. Bare mavefornemmelse.')+`<div class="expression">${Number(state.target).toLocaleString('da-DK', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <small>s</small></div><p class="muted" style="text-align:center" id="answered"></p>`; break;
         case 'reaction': html = heading(game)+`<div class="signal-word ${state.go?'go':''}">${state.go?'NU!':'VENT …'}</div><p class="muted" style="text-align:center" id="answered"></p>`; break;
-        case 'math': html = heading(game)+`<div class="expression">${escape(state.expression)} = ?</div><p class="muted" style="text-align:center" id="answered"></p>`; break;
+        case 'math': html = heading(game)+`<div class="eyebrow" style="text-align:center">${state.question}/${state.totalQuestions}</div><div class="expression">${escape(state.expression)} = ?</div><p class="muted" style="text-align:center" id="answered"></p>`; break;
         case 'duel': html = heading(game,state.tie?'Uafgjort! Vi tager den igen …':'Kun de to udvalgte kan se deres valg.')+`<div class="duel-stage">${state.selected.map((id,i)=>`${i?'<div class="versus">VS</div>':''}<div class="duelist"><h2>${escape(nameOf(id))}</h2><span class="duel-choice">${choiceSymbol(state.choices?.[id])}</span></div>`).join('')}</div>`; break;
         case 'wheel': html = heading(game,'Hvem peger pilen på?')+wheelHtml(state); break;
         case 'bomb': html = heading(game,'Ingen kender tiden. Send den videre!')+`<div class="bomb-stage"><div class="bomb-orb">✹</div><h2>${escape(nameOf(state.holder))}</h2><p class="muted">har bomben lige nu</p></div>`; break;

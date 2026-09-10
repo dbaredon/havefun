@@ -118,6 +118,17 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
             room.LastActivity = now;
         }
     }
+    public void EndResults(Room room)
+    {
+        lock (room.Gate)
+        {
+            if (room.Game is not { } game || game.Phase(clock.GetUtcNow()) != "Results") throw new PartyException("Festen kan afsluttes, når runden er slut.");
+            room.QuickPlay = false;
+            room.ResultsLeaderboardOpen = true;
+            room.NextRoundAt = null;
+            room.LastActivity = clock.GetUtcNow();
+        }
+    }
     public IReadOnlyList<RankedResult> Results(Room room)
     {
         if (room.Game is not { FinishedAt: not null } game) return [];

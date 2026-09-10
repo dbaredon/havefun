@@ -19,12 +19,18 @@ public sealed class GameCatalog
         "cookie" => new CookieClicker(players, now, RandomNumberGenerator.GetInt32(10, 46)),
         "timing" => new PerfectTiming(players, now, RandomNumberGenerator.GetInt32(100, 6001) / 100.0),
         "reaction" => new Reaction(players, now, RandomNumberGenerator.GetInt32(1800, 5001)),
-        "math" => new QuickMath(players, now, MathProblem.Generate()),
+        "math" => new QuickMath(players, now, Enumerable.Range(0, 5).Select(_ => MathProblem.Generate()).ToArray()),
         "duel" when players.Count >= 2 => new Duel(players, now, PickDuelists(players)),
-        "wheel" => new SpinWheel(players, now, RandomNumberGenerator.GetInt32(players.Count)),
+        "wheel" when players.Count >= 2 => CreateWheel(players, now),
+        "wheel" => new SpinWheel(players, now, 0),
         "bomb" when players.Count >= 2 => new HotPotato(players, now, RandomNumberGenerator.GetInt32(players.Count), RandomNumberGenerator.GetInt32(30, 91)),
         _ => throw new PartyException("Vælg et spil, og sørg for, at mindst to spillere er med.")
     };
+    private static SpinWheel CreateWheel(IReadOnlyList<string> players, DateTimeOffset now)
+    {
+        var indices = Enumerable.Range(0, players.Count).OrderBy(_ => RandomNumberGenerator.GetInt32(int.MaxValue)).Take(2).ToArray();
+        return new SpinWheel(players, now, indices[0], indices[1]);
+    }
     private static string[] PickDuelists(IReadOnlyList<string> players)
     {
         var shuffled = players.ToArray();
