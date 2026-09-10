@@ -261,7 +261,7 @@
     $('player-room-label').textContent=`${me.name} · RUM ${room.code}`;
     const game=room.game; const mine=ownRound===game?.id ? own : {};
     const enrolled=game?.participants.includes(me.playerId);
-    const key=[game?.id,game?.phase,room.hostConnected,enrolled,game?.state.go,game?.state.holder,game?.state.attempt,game?.state.tie,game?.kind==='bomb'?room.players.filter(p=>p.connected).map(p=>p.id).join(','):'',game?.kind==='catch'?`${mine.hits}:${mine.x}:${mine.y}`:'',!!mine.started,!!mine.submitted,!!mine.falseStart].join(':');
+    const key=[game?.id,game?.phase,room.hostConnected,enrolled,game?.state.go,game?.state.holder,game?.state.attempt,game?.state.tie,game?.kind==='bomb'?room.players.filter(p=>p.connected).map(p=>p.id).join(','):'',game?.kind==='catch'?`${mine.hits}:${mine.x}:${mine.y}`:'',game?.kind==='grid'?`${mine.next}:${(mine.grid||[]).join(',')}`:'',!!mine.started,!!mine.submitted,!!mine.falseStart].join(':');
     if (key !== renderKey) {
       renderKey=key;
       let html=!room.hostConnected?'<div class="notice host-missing">Værten er offline. Runden fortsætter, og værten kan vende tilbage.</div>':'';
@@ -311,7 +311,7 @@
     }));
     document.querySelectorAll('[data-pass]').forEach(button=>button.addEventListener('click',()=>{act('pass',button.dataset.pass);buzz(25);}));
     document.querySelector('[data-catch]')?.addEventListener('click', event=>{ event.currentTarget.disabled=true; act('hit'); buzz(15); });
-    document.querySelectorAll('[data-grid]').forEach(button=>button.addEventListener('click',()=>{ act('grid',button.dataset.grid); buzz(10); }));
+    document.querySelectorAll('[data-grid]').forEach(button=>button.addEventListener('click',async event=>{ const correct=Number(button.dataset.grid)===(mine.next||1); button.classList.add(correct?'correct':'wrong'); await act('grid',button.dataset.grid); buzz(correct?10:[30,40,30]); }));
   }
   function updateClocks() {
     document.querySelectorAll('[data-countdown]').forEach(el=>{
