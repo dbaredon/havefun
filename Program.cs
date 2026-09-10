@@ -12,7 +12,21 @@ using QRCoder;
 var builder = WebApplication.CreateBuilder(args);
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("da-DK");
 CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.GetCultureInfo("da-DK");
-builder.Services.Configure<PartyOptions>(builder.Configuration.GetSection("Party"));
+builder.Services.AddOptions<PartyOptions>()
+    .Bind(builder.Configuration.GetSection("Party"))
+    .PostConfigure(options =>
+    {
+        // Render terminates HTTPS before forwarding to the container. Use its public URL for QR codes.
+        if (string.IsNullOrWhiteSpace(options.PublicBaseUrl))
+            options.PublicBaseUrl = builder.Configuration["RENDER_EXTERNAL_URL"] ?? "";
+    });
+builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>
+{
+    var frontend = builder.Configuration["Party:FrontendBaseUrl"];
+    if (Uri.TryCreate(frontend, UriKind.Absolute, out var uri))
+        policy.WithOrigins(uri.GetLeftPart(UriPartial.Authority)).WithMethods("GET", "POST", "DELETE").AllowAnyHeader();
+}));
+builder.Services.AddSingleton<FrontendLinks>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<RoomService>();
 builder.Services.AddSingleton<GameCatalog>();
@@ -40,23 +54,36 @@ app.Use(async (context, next) =>
 });
 app.UseStaticFiles();
 app.UseRouting();
+app.UseCors("Frontend");
+// CORS does not protect WebSocket handshakes. Enforce the same origin policy there too.
+app.Use(async (context, next) =>
+{
+    if ((context.Request.Path.StartsWithSegments("/party") || context.Request.Path.StartsWithSegments("/api")) &&
+        context.Request.Headers.TryGetValue("Origin", out var origin) &&
+        !context.RequestServices.GetRequiredService<FrontendLinks>().AllowsOrigin(origin.ToString(), context.Request))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return;
+    }
+    await next();
+});
 app.UseRateLimiter();
 app.MapRazorPages();
 app.MapHub<PartyHub>("/party");
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapPost("/api/rooms", (HttpContext context, RoomService rooms) =>
 {
-    // No cross-origin creation; host tokens are returned only to the requesting browser.
+    // Only the configured frontend can read cross-origin responses. Tokens are never put in URLs.
     if (!context.Request.Headers.ContainsKey("X-Gnist-Request")) return Results.BadRequest();
     try { context.Response.Headers.CacheControl = "no-store"; return Results.Ok(rooms.Create()); }
     catch (PartyException e) { return Results.BadRequest(new { error = e.Message }); }
 }).RequireRateLimiting("create");
-app.MapGet("/api/rooms/{code}/qr", (string code, HttpContext context, RoomService rooms, IOptions<PartyOptions> options) =>
+app.MapGet("/api/rooms/{code}/qr", (string code, HttpContext context, RoomService rooms, FrontendLinks links) =>
 {
     try { rooms.Get(code); } catch (PartyException) { return Results.NotFound(); }
-    var baseUrl = options.Value.PublicBaseUrl.TrimEnd('/');
-    if (baseUrl.Length == 0) baseUrl = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}";
-    using var data = QRCodeGenerator.GenerateQrCode($"{baseUrl}/join/{Uri.EscapeDataString(code.ToUpperInvariant())}", QRCodeGenerator.ECCLevel.Q);
+    var joinUrl = links.JoinUrl(code, context.Request.Query["frontend"] == "pages", context.Request);
+    if (joinUrl is null) return Results.BadRequest(new { error = "GitHub-sidens adresse er ikke konfigureret på spilserveren." });
+    using var data = QRCodeGenerator.GenerateQrCode(joinUrl, QRCodeGenerator.ECCLevel.Q);
     using var svg = new SvgQRCode(data);
     return Results.Text(svg.GetGraphic(8), "image/svg+xml");
 });

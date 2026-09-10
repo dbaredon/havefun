@@ -1,0 +1,17 @@
+.git
+.github
+.idea
+.vs
+.agents
+.codex
+**/bin
+**/obj
+**/TestResults
+artifacts
+tests
+.env
+.env.*
+*.user
+.DS_Store
+
+tools

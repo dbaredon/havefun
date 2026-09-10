@@ -9,14 +9,17 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Hosting;
 using Xunit;
 
 namespace Gnist.Tests;
 
 public class MultiplayerTests
 {
-    private static HubConnection Connect(WebApplicationFactory<Program> app) => new HubConnectionBuilder()
+    private static HubConnection Connect(WebApplicationFactory<Program> app, string? origin = null) => new HubConnectionBuilder()
         .WithUrl("http://localhost/party", options => {
+            if (origin is not null) options.Headers["Origin"] = origin;
             options.HttpMessageHandlerFactory = _ => app.Server.CreateHandler();
             options.Transports = HttpTransportType.LongPolling;
         }).Build();
@@ -36,18 +39,25 @@ public class MultiplayerTests
     }
     [Fact] public async Task RealSignalRFlow_Create_Qr_Join_Lobby_Play_Results_Reconnect()
     {
-        await using var app=new WebApplicationFactory<Program>();
+        const string frontendOrigin = "https://dbaredon.github.io";
+        await using var app=new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> {
+                ["Party:FrontendBaseUrl"] = frontendOrigin + "/havefun"
+            })));
         var client=app.CreateClient();
+        client.DefaultRequestHeaders.Add("Origin", frontendOrigin);
         var created=await Create(client);
         var qr=await client.GetAsync($"/api/rooms/{created.Code}/qr");
         Assert.Equal(HttpStatusCode.OK,qr.StatusCode);
         Assert.Equal("image/svg+xml",qr.Content.Headers.ContentType!.MediaType);
         Assert.Contains("<svg",await qr.Content.ReadAsStringAsync());
+        Assert.Equal(frontendOrigin, qr.Headers.GetValues("Access-Control-Allow-Origin").Single());
+        Assert.Equal(HttpStatusCode.OK,(await client.GetAsync($"/api/rooms/{created.Code}/qr?frontend=pages")).StatusCode);
         var landing=await client.GetStringAsync("/");
         Assert.Contains("lang=\"da\"",landing);Assert.Contains("Start en fest",landing);
         Assert.Equal(HttpStatusCode.OK,(await client.GetAsync($"/join/{created.Code}")).StatusCode);
         Assert.Equal(HttpStatusCode.OK,(await client.GetAsync($"/host/{created.Code}")).StatusCode);
-        await using var host=Connect(app);await using var a=Connect(app);await using var b=Connect(app);
+        await using var host=Connect(app, frontendOrigin);await using var a=Connect(app, frontendOrigin);await using var b=Connect(app, frontendOrigin);
         var states=Channel.CreateUnbounded<JsonElement>();
         host.On<JsonElement>("HostState",state=>states.Writer.TryWrite(state));
         await host.StartAsync();await a.StartAsync();await b.StartAsync();
@@ -73,7 +83,7 @@ public class MultiplayerTests
         Assert.True(rows[0].GetProperty("winner").GetBoolean());
         Assert.Equal(pb.PlayerId,rows[1].GetProperty("playerId").GetString());
         await a.StopAsync();
-        await using var restored=Connect(app);await restored.StartAsync();
+        await using var restored=Connect(app, frontendOrigin);await restored.StartAsync();
         var restoredPlayer=await restored.InvokeAsync<JoinReceipt>("Join",created.Code,"Tony",pa.PlayerToken);
         Assert.Equal(pa.PlayerId,restoredPlayer.PlayerId);
         Assert.Equal(2,app.Services.GetRequiredService<RoomService>().Get(created.Code).Players.Count);

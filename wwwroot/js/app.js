@@ -2,6 +2,12 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const page = document.body.dataset.page;
+  const site = GnistNavigation.create({
+    href: location.href,
+    scriptUrl: document.querySelector('script[data-gnist-app]').src,
+    staticSite: document.body.dataset.staticSite === 'true',
+    apiBaseUrl: window.GNIST_CONFIG?.apiBaseUrl || ''
+  });
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const games = {
     cookie: ['Klikamok', 'Tryk så hurtigt, du kan. Hvert klik tæller.', '◉', 'HURTIGE FINGRE'],
@@ -13,8 +19,8 @@
     bomb: ['Tikkende bombe', 'Send den videre. Ingen ved, hvornår den springer.', '✹', 'VARME HÆNDER']
   };
   let connection, room, me, own = {}, ownRound, renderKey = '', offset = 0, sequence = Date.now(), lastBuzz = '', lastStarted = '', hydratedSettings = false, toastTimer;
-  const code = decodeURIComponent(location.pathname.split('/')[2] || '').toUpperCase();
-  const storageKey = `gnist:player:${code}`;
+  const code = site.code;
+  const storageKey = site.sessionKey('player', code);
   const getSession = key => { try { return JSON.parse(sessionStorage.getItem(key) || 'null'); } catch { return null; } };
   const saveSession = (key, value) => sessionStorage.setItem(key, JSON.stringify(value));
   const nameOf = id => room?.players.find(p => p.id === id)?.name || 'Spiller';
@@ -37,21 +43,32 @@
   async function create() {
     $('create').disabled = true;
     try {
-      const response = await fetch('/api/rooms', { method:'POST', headers:{'X-Gnist-Request':'create'} });
+      const response = await fetch(site.api('/api/rooms'), { method:'POST', headers:{'X-Gnist-Request':'create'} });
       if (!response.ok) { const data = await response.json().catch(() => ({})); throw new Error(data.error || 'Der er travlt lige nu. Prøv igen om lidt.'); }
       const data = await response.json();
-      saveSession(`gnist:host:${data.code}`, data.hostToken);
-      location.href = `/host/${data.code}`;
-    } catch (error) { toast(error.message); $('create').disabled = false; }
+      saveSession(site.sessionKey('host', data.code), data.hostToken);
+      location.href = site.route('host', data.code);
+    } catch (error) { toast(error instanceof TypeError ? 'Spilserveren svarer ikke endnu. Vent et øjeblik, og prøv igen.' : error.message); $('create').disabled = false; }
   }
   $('create')?.addEventListener('click', create);
   $('fullscreen')?.addEventListener('click', async () => {
     try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }
     catch { toast('Fuld skærm understøttes ikke i denne browser.'); }
   });
+  if ($('room-code')) $('room-code').value = code;
+  if (!site.ready) {
+    const notice = document.createElement('div');
+    notice.className = 'notice'; notice.setAttribute('role', 'status');
+    notice.textContent = 'Velkommen til GNIST. Spillet er ikke åbnet endnu — kom tilbage snart!';
+    document.querySelector('main')?.prepend(notice);
+    document.querySelectorAll('#create, #join-form button, #quick-start, [data-game]').forEach(button => button.disabled = true);
+    status('Spillet åbner snart');
+    return;
+  }
   if (page === 'home' || !['host', 'player'].includes(page)) return;
+
   if (!window.signalR) { toast('Spilforbindelsen kunne ikke indlæses. Genindlæs siden.'); return; }
-  connection = new signalR.HubConnectionBuilder().withUrl('/party')
+  connection = new signalR.HubConnectionBuilder().withUrl(site.api('/party'), { withCredentials: false })
     .withAutomaticReconnect({ nextRetryDelayInMilliseconds: context => Math.min(500 + context.previousRetryCount * 1000, 5000) })
     .configureLogging(signalR.LogLevel.Warning).build();
   connection.on(page === 'host' ? 'HostState' : 'State', state => {
@@ -74,10 +91,10 @@
   });
   connection.onclose(() => status('Ikke forbundet · genindlæs for at prøve igen'));
   async function identify() {
-    if (page === 'host') await connection.invoke('Host', code, getSession(`gnist:host:${code}`) || '');
+    if (page === 'host') await connection.invoke('Host', code, getSession(site.sessionKey('host', code)) || '');
     else if (me) {
       me = await connection.invoke('Join', me.code, me.name, me.playerToken);
-      saveSession(`gnist:player:${me.code}`, me); showPlayer();
+      saveSession(site.sessionKey('player', me.code), me); showPlayer();
     }
   }
   async function connect() {
@@ -91,18 +108,18 @@
     try {
       await connect();
       const joinCode = $('room-code').value.trim().toUpperCase();
-      const saved = getSession(`gnist:player:${joinCode}`);
+      const saved = getSession(site.sessionKey('player', joinCode));
       me = await connection.invoke('Join', joinCode, $('player-name').value.trim(), saved?.playerToken || null);
-      saveSession(`gnist:player:${me.code}`, me);
+      saveSession(site.sessionKey('player', me.code), me);
       // Keep the joined URL on refresh, without creating another player.
-      if (code !== me.code) { location.replace(`/join/${me.code}`); return; }
+      if (code !== me.code) { location.replace(site.route('join', me.code)); return; }
       showPlayer(); buzz([40, 50, 40]);
     } catch (error) { toast(friendly(error)); }
     finally { button.disabled = false; }
   });
   $('leave')?.addEventListener('click', async () => {
     if (!await invoke('Leave')) return;
-    sessionStorage.removeItem(`gnist:player:${me.code}`); me = null; await connection.stop(); location.href = '/join';
+    sessionStorage.removeItem(site.sessionKey('player', me.code)); me = null; await connection.stop(); location.href = site.route('join');
   });
   function settings() {
     return { clickSeconds: Number($('click-seconds').value), consequence: $('consequence').value,
@@ -116,11 +133,14 @@
   $('choose-next')?.addEventListener('click', async () => { if (await invoke('Lobby')) $('game-picker').open = true; });
   $('pause')?.addEventListener('click', () => invoke('Pause'));
   $('copy-link')?.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(`${location.origin}/join/${code}`); toast('Invitationslinket er kopieret.'); }
-    catch { toast(`Invitér vennerne: ${location.origin}/join/${code}`); }
+    try { await navigator.clipboard.writeText(site.route('join', code)); toast('Invitationslinket er kopieret.'); }
+    catch { toast(`Invitér vennerne: ${site.route('join', code)}`); }
   });
   if (page === 'host') {
-    $('join-address').textContent = `${location.host}/join`;
+    $('host-code').textContent = code;
+    document.querySelector('.big-room-code').textContent = code;
+    $('qr').src = site.api(`/api/rooms/${encodeURIComponent(code)}/qr`) + (document.body.dataset.staticSite === 'true' ? '?frontend=pages' : '');
+    $('join-address').textContent = site.route('join').replace(/^https?:\/\//, '');
     $('lan-note').hidden = !['localhost','127.0.0.1','[::1]'].includes(location.hostname);
     connect().then(identify).catch(error => { $('host-error').textContent = friendly(error); $('host-error').hidden = false; });
   } else {

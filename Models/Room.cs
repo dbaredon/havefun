@@ -6,6 +6,7 @@ public sealed class PartyOptions
     public int RoomIdleMinutes { get; set; } = 120;
     public int MaxPlayers { get; set; } = 100;
     public int MaxRooms { get; set; } = 500;
+    public string FrontendBaseUrl { get; set; } = "";
     public string PublicBaseUrl { get; set; } = "";
 }
 

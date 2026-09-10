@@ -6,6 +6,46 @@ Små spil. Store øjeblikke. En dansk multiplayer-festplatform, hvor TV'et er f�
 
 Den oprindelige produktbeskrivelse ligger uændret i [docs/BRIEF.md](docs/BRIEF.md).
 
+## GitHub Pages: den rigtige brugerflade på dit link
+
+Brugerfladen kan nu ligge på **https://dbaredon.github.io/havefun/**. Workflowet `.github/workflows/pages.yml` eksporterer de eksisterende Razor-sider til statisk HTML og udgiver dem til Pages. Der er én fælles brugerflade og ét sæt JavaScript/CSS til lokal drift og GitHub Pages.
+
+### Udgiv brugerfladen
+
+1. Commit og push projektets ændringer til `main` på GitHub.
+2. Åbn repositoryets **Settings → Pages → Build and deployment → Source**, og vælg **GitHub Actions**. Brug ikke den gamle branch/Jekyll-udgivelse, som viste README'en.
+3. Åbn **Actions → Publish UI to GitHub Pages → Run workflow**. Efter første opsætning kører det også automatisk ved push til `main`.
+4. Når workflowet er grønt, åbn **https://dbaredon.github.io/havefun/**.
+
+Forsiden vises også uden en spilserver. I så fald vises beskeden »Spillet er ikke åbnet endnu«, og spilknapper er deaktiveret. Intet multiplayer simuleres.
+
+### Tilslut spilserveren én gang
+
+Pages viser UI'et; .NET-serveren håndterer rum, QR-koder og live-input:
+
+1. Log ind på [Render](https://dashboard.render.com) med GitHub. Vælg **New → Blueprint**, og forbind repositoryet. Den medfølgende `render.yaml` opretter en .NET-container på Free-planen. Docker skal ikke installeres lokalt.
+2. Når serveren viser **Live**, kopiér dens HTTPS-adresse, fx `https://gnist-xxxx.onrender.com`. Kontroller, at `/health` svarer med `{"status":"ok"}`.
+3. På GitHub: **Settings → Secrets and variables → Actions → Variables → New repository variable**. Navn: **`GNIST_API_URL`**. Værdi: serveradressen uden ekstra sti. Det er en offentlig adresse, ikke en secret.
+4. Kør **Publish UI to GitHub Pages** igen. Ændring af en repository-variable starter ikke selv et workflow.
+5. Brug fortsat **GitHub Pages-linket** til at oprette festen. QR-koden sender telefonerne til `/havefun/join/?code=XXXX` på samme GitHub-side.
+
+`render.yaml` indstiller `Party__FrontendBaseUrl=https://dbaredon.github.io/havefun`. Har du allerede oprettet serveren manuelt, skal denne miljøvariabel tilføjes i Render under **Environment**. Den åbner CORS/WebSocket-adgang for præcis `https://dbaredon.github.io` og bestemmer QR-kodernes frontend-adresse. Backend og UI skal begge opdateres til denne version. Værtstokens sendes kun til den konfigurerede spilserver og gemmes pr. server og fane.
+
+Free-planen er til afprøvning: Render kan gå i dvale efter 15 minutter uden indgående trafik, og opstart kan tage cirka et minut. Rum forsvinder ved genstart eller deployment. Til en rigtig fest bør du vælge en betalt instans og fortsat beholde **én instans**, fordi rum gemmes i hukommelsen.
+
+### Lokal kontrol af Pages-buildet
+
+```sh
+dotnet run --project tools/Gnist.Export/Gnist.Export.csproj --configuration Release -- artifacts/pages
+python3 tools/check_pages.py artifacts/pages
+```
+
+Outputtet ligger i `artifacts/pages` med `index.html`, `join/index.html`, `host/index.html`, CSS, JavaScript og `.nojekyll`. Miljøvariablen `GNIST_BASE_PATH` angiver Pages-stien (standard `/havefun/`), og `GNIST_API_URL` bages ind i `config.js`. GitHub-workflowet finder selv Pages-stien.
+
+Links til vært og spillere bruger eksisterende statiske sider med `?code=…`, så direkte links og genindlæsning virker uden serverrouting. Lokal `dotnet run` beholder de eksisterende `/host/XXXX`- og `/join/XXXX`-ruter. Backendens egen Razor-brugerflade kan stadig bruges.
+
+Se [GitHub Pages med Actions](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages), [Renders Blueprint-vejledning](https://render.com/docs/infrastructure-as-code) og [begrænsninger for Free](https://render.com/docs/free).
+
 ## Start lokalt
 
 Installér .NET 10 SDK. Åbn `minigames.sln` i Rider, eller kør fra projektets rod:
@@ -63,7 +103,8 @@ Services/GameManager.cs   Rundeskift, resultater, point og quick play
 Services/RoomBroadcaster.cs  Offentlige, værts- og private snapshots + timer
 Games/                   IMiniGame, fælles livscyklus og syv implementeringer
 wwwroot/css/             Responsivt design og bevægelse
-wwwroot/js/              SignalR-klient, TV-visninger og telefoncontrollere
+wwwroot/js/              SignalR-klient, TV-visninger, telefoncontrollere og navigation
+tools/Gnist.Export/       Bygger statisk HTML fra de samme Razor-sider til Pages
 wwwroot/lib/             Lokal Microsoft SignalR JavaScript-klient
 tests/Gnist.Tests/       Regeltests og rigtige SignalR-integrationstests
 ```
@@ -79,6 +120,7 @@ Livscyklus: **Waiting (lobby) → Intro → Countdown → Playing → Finished �
 - `Join(code, name, playerToken?)` opretter eller genforbinder en spiller. Identiske navne får et nummer.
 - `Start`, `Pause` og `Lobby` kræver et godkendt værtsmedlemskab. Et spillertoken giver aldrig værtsadgang.
 - `Act` videresender input til `GameManager` og det aktive minispil.
+- GitHub Pages bruger samme hub via en absolut serveradresse og en afgrænset CORS-politik. WebSocket-requests kontrolleres også, fordi CORS alene ikke beskytter dem.
 - `State` er rummets offentlige tilstand; `HostState` indeholder TV-data; `Own` går kun til den enkelte spillers forbindelser. Tokens, skjulte svar, duelvalg og bombens lunte lækkes ikke i offentlige projektioner.
 - Snapshots sendes fire gange pr. sekund. Under Lynhurtig sendes de op til 20 gange pr. sekund for et hurtigere NU-signal. Klik sendes enkeltvis til serveren, men den samlede rangliste sendes kun til værten; telefoner får deres eget antal.
 - SignalR genforbinder automatisk efter netværksafbrydelser. Spilleren/værten identificerer sig igen med token fra `sessionStorage`. Faner kan derfor repræsentere forskellige spillere, mens en genindlæsning af samme fane bevarer identiteten. En duplikeret fane kan arve den oprindelige session; åbn en frisk fane til en ny testspiller.
@@ -104,6 +146,7 @@ Indstillinger findes i `appsettings.json` og kan overskrives med miljøvariabler
 | Inaktivt rum udløber | 120 minutter | `Party__RoomIdleMinutes` |
 | Maksimalt antal spillere pr. rum | 100 | `Party__MaxPlayers` |
 | Maksimalt antal aktive rum | 500 | `Party__MaxRooms` |
+| GitHub Pages-frontend / tilladt origin | Tom (lokal drift) | `Party__FrontendBaseUrl` |
 | Offentlig URL til QR-koder | Aktuel request-origin | `Party__PublicBaseUrl` |
 
 Indstil `Party__PublicBaseUrl` til den fulde HTTPS-adresse i produktion. Indstil også `AllowedHosts` til det/de rigtige hostnavne. Værten kan vælge spilvarighed og konsekvenser i lobbyen. Aktive spil og resultater forsvinder ved genstart/deployment.
@@ -113,7 +156,10 @@ Indstil `Party__PublicBaseUrl` til den fulde HTTPS-adresse i produktion. Indstil
 ```sh
 dotnet build minigames.sln
 dotnet test tests/Gnist.Tests/Gnist.Tests.csproj
+node --test tests/frontend/*.test.cjs
 ```
+
+JavaScript-testene kræver Node.js 22 og kontrollerer Pages-stier, serveradresser og sessioner. Node er kun nødvendigt for disse udviklingstests, ikke for appen eller HTML-eksporten. C#-integrationstestene kontrollerer også CORS, afviste fremmede origins og et fuldt multiplayer-forløb fra GitHub-origin.
 
 Testene dækker alle sten/saks/papir-kombinationer, genereret regning/svarevaluering, timingrangering, tyvstart, klikbegrænsning, dubletter, hemmelige valg, bombens lunte, hjulets valg, rumoprettelse, navnekollisioner, genforbindelse, værtssikkerhed, sen tilmelding, udløb og automatisk spil.
 
