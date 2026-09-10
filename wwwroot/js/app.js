@@ -160,7 +160,8 @@
     return `<div class="${phone?'controller':'intro'}"><div class="eyebrow">${info[3]}</div>${game.phase==='Countdown' ? `<h1>${info[0]}</h1><div class="countdown" data-countdown="${game.startsAt}">3</div>` : `<div class="huge-icon">${info[2]}</div><h1>${info[0]}</h1><p>${info[1]}</p>`}${target}</div>`;
   }
   function heading(game, subtitle='') {
-    return `<div class="game-heading"><h1>${games[game.kind][0]}</h1>${subtitle?`<p>${subtitle}</p>`:''}${game.state.endsAt && !['timing','duel','wheel'].includes(game.kind) ? `<div class="timer" data-timer="${game.state.endsAt}"></div>`:''}</div>`;
+    const timerAt = game.kind === 'math' ? game.state.questionEndsAt : game.state.endsAt;
+    return `<div class="game-heading"><h1>${games[game.kind][0]}</h1>${subtitle?`<p>${subtitle}</p>`:''}${timerAt && !['timing','duel','wheel'].includes(game.kind) ? `<div class="timer" data-timer="${timerAt}"></div>`:''}</div>`;
   }
   function resultsHtml(game) {
     const top = game.results.find(r => r.winner) || game.results.find(r => r.bottom) || game.results[0];
@@ -261,7 +262,7 @@
     $('player-room-label').textContent=`${me.name} · RUM ${room.code}`;
     const game=room.game; const mine=ownRound===game?.id ? own : {};
     const enrolled=game?.participants.includes(me.playerId);
-    const key=[game?.id,game?.phase,room.hostConnected,enrolled,game?.state.go,game?.state.holder,game?.state.attempt,game?.state.tie,game?.kind==='bomb'?room.players.filter(p=>p.connected).map(p=>p.id).join(','):'',game?.kind==='catch'?`${mine.hits}:${mine.x}:${mine.y}`:'',game?.kind==='grid'?`${mine.next}:${(mine.grid||[]).join(',')}`:'',!!mine.started,!!mine.submitted,!!mine.falseStart].join(':');
+    const key=[game?.id,game?.phase,room.hostConnected,enrolled,game?.state.go,game?.state.holder,game?.state.attempt,game?.state.tie,game?.kind==='bomb'?room.players.filter(p=>p.connected).map(p=>p.id).join(','):'',game?.kind==='catch'?`${mine.hits}:${mine.x}:${mine.y}`:'',game?.kind==='grid'?`${mine.next}:${(mine.grid||[]).join(',')}`:'',game?.kind==='math'?game.state.question:'',!!mine.started,!!mine.submitted,!!mine.falseStart].join(':');
     if (key !== renderKey) {
       renderKey=key;
       let html=!room.hostConnected?'<div class="notice host-missing">Værten er offline. Runden fortsætter, og værten kan vende tilbage.</div>':'';
