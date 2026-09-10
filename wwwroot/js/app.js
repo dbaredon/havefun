@@ -6,7 +6,7 @@
     href: location.href,
     scriptUrl: document.querySelector('script[data-gnist-app]').src,
     staticSite: document.body.dataset.staticSite === 'true',
-    apiBaseUrl: window.GNIST_CONFIG?.apiBaseUrl || ''
+    apiBaseUrl: window.GNIST_CONFIG?.apiBaseUrl || 'https://gnist-l1pd.onrender.com'
   });
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const games = {
