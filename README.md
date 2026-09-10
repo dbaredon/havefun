@@ -17,7 +17,7 @@ Efter hver runde vises resultatet med den bedste og dårligste placering. De to 
 | **3×3 Grid** | Tryk tallene 1–9 i rækkefølge. Et forkert tryk blander tallene igen. |
 | **Duellen** | To spillere mødes i sten, saks, papir. Uafgjort giver en ny omgang. |
 | **Skæbnehjulet** | Hjulet vælger tilfældigt en spiller. Alle følger med på den store skærm. |
-| **Tikkende bombe** | Send bomben videre, før den tilfældige lunte på 30–90 sekunder udløber. En modtager skal vente 3 sekunder, før bomben kan sendes videre. |
+| **Tikkende bombe** | Send bomben videre, før den tilfældige lunte på 15–60 sekunder udløber. En modtager skal vente 3 sekunder, før bomben kan sendes videre. |
 
 ## Point
 
