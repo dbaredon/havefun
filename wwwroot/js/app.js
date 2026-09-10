@@ -128,6 +128,7 @@
   async function start(kind, quick) { await invoke('Start', kind, quick, settings()); }
   $('quick-start')?.addEventListener('click', () => start(null, true));
   $('back-lobby')?.addEventListener('click', () => invoke('Lobby'));
+  $('skip-game')?.addEventListener('click', () => invoke('SkipGame'));
   $('show-leaderboard')?.addEventListener('click', () => invoke('ShowLeaderboard'));
   $('show-results')?.addEventListener('click', () => invoke('ShowResults'));
   $('end-results')?.addEventListener('click', () => invoke('EndResults'));
@@ -202,6 +203,7 @@
     if (!game) { renderKey = ''; return; }
     $('round-label').textContent = `RUNDE ${room.round} · ${room.quickPlay?'AUTOMATISK SPIL':'JERES VALG'}`;
     $('result-actions').hidden = game.phase !== 'Results';
+    $('skip-game').hidden = game.phase === 'Results';
     $('show-leaderboard').hidden = game.phase !== 'Results' || room.resultsLeaderboardOpen;
     $('show-results').hidden = game.phase !== 'Results' || !room.resultsLeaderboardOpen;
     $('end-results').hidden = game.phase !== 'Results' || !room.quickPlay;
