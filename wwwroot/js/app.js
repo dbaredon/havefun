@@ -125,7 +125,6 @@
   async function start(kind, quick) { await invoke('Start', kind, quick, settings()); }
   $('quick-start')?.addEventListener('click', () => start(null, true));
   $('back-lobby')?.addEventListener('click', () => invoke('Lobby'));
-  $('pause')?.addEventListener('click', () => invoke('Pause'));
   $('show-leaderboard')?.addEventListener('click', () => invoke('ShowLeaderboard'));
   $('show-results')?.addEventListener('click', () => invoke('ShowResults'));
   $('copy-link')?.addEventListener('click', async () => {
@@ -170,7 +169,7 @@
     const drinkers = game.results.slice(-2).map(r => escape(r.name)).join(' & ');
     const drinkingMessage = game.results.length > 1 ? `<div class="notice" style="text-align:center"><strong>${drinkers}, skål!</strong><br />Tag en tår for holdet.</div>` : '';
     const spotlight = `<div class="results-list">${spotlightResults.map((r,i)=>`<div class="result-row ${i===0?'winner':'bottom'}"><span class="rank">${i===0?'✦':'!'}</span><div class="result-person"><strong>${escape(r.name)}</strong>${r.points?`<small>+${r.points} point</small>`:''}</div><div class="result-detail">${escape(r.detail)}</div></div>`).join('')}</div>`;
-    const body = room.resultsLeaderboardOpen ? `${roundBoard}${totalBoard}` : `${duelReveal}${spotlight}${drinkingMessage}<p class="muted" style="text-align:center">Se leaderboardet, når I vil.</p>`;
+    const body = room.resultsLeaderboardOpen ? totalBoard : `${duelReveal}${spotlight}${drinkingMessage}<p class="muted" style="text-align:center">Se leaderboardet, når I vil.</p>`;
     return `<div class="results-title"><div class="eyebrow">RUNDE ${room.round} · ${games[game.kind][0]}</div><h1>${title}</h1>${game.kind==='math'?`<p class="muted">${escape(game.state.expression)} = ${game.state.answer}</p>`:''}</div>${body}`;
   }
   function renderHost() {
@@ -199,7 +198,6 @@
     $('result-actions').hidden = game.phase !== 'Results';
     $('show-leaderboard').hidden = game.phase !== 'Results' || room.resultsLeaderboardOpen;
     $('show-results').hidden = game.phase !== 'Results' || !room.resultsLeaderboardOpen;
-    $('pause').hidden = !room.quickPlay;
     const state = game.state;
     const key = [game.id,game.phase,game.phase==='Results' ? `${room.resultsLeaderboardOpen}:${room.resultsElapsedMs}` : '',game.kind==='reaction'?state.go:'',game.kind==='bomb'?state.holder:'',game.kind==='duel'?`${state.attempt}:${state.tie}:${JSON.stringify(state.choices)}`:''].join(':');
     if (key !== renderKey) {
