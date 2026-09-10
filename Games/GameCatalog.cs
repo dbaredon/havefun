@@ -17,7 +17,7 @@ public sealed class GameCatalog
     public MiniGame Create(string kind, IReadOnlyList<string> players, DateTimeOffset now, RoomSettings settings) => kind switch
     {
         "cookie" => new CookieClicker(players, now, settings.ClickSeconds),
-        "timing" => new PerfectTiming(players, now, new[] { 3, 5, 7, 10 }[RandomNumberGenerator.GetInt32(4)]),
+        "timing" => new PerfectTiming(players, now, RandomNumberGenerator.GetInt32(100, 6001) / 100.0),
         "reaction" => new Reaction(players, now, RandomNumberGenerator.GetInt32(1800, 5001)),
         "math" => new QuickMath(players, now, MathProblem.Generate()),
         "duel" when players.Count >= 2 => new Duel(players, now, PickDuelists(players)),

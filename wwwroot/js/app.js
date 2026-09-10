@@ -126,6 +126,8 @@
   $('quick-start')?.addEventListener('click', () => start(null, true));
   $('back-lobby')?.addEventListener('click', () => invoke('Lobby'));
   $('pause')?.addEventListener('click', () => invoke('Pause'));
+  $('show-leaderboard')?.addEventListener('click', () => invoke('ShowLeaderboard'));
+  $('show-results')?.addEventListener('click', () => invoke('ShowResults'));
   $('copy-link')?.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(site.route('join', code)); toast('Invitationslinket er kopieret.'); }
     catch { toast(`Invitér vennerne: ${site.route('join', code)}`); }
@@ -151,7 +153,7 @@
   }
   function intro(game, phone = false) {
     const info = games[game.kind];
-    const target = game.kind === 'timing' ? `<p class="lime">Dit mål: ${game.state.target},000 sekunder</p>` : '';
+    const target = game.kind === 'timing' ? `<p class="lime">Dit mål: ${Number(game.state.target).toLocaleString('da-DK', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} sekunder</p>` : '';
     return `<div class="${phone?'controller':'intro'}"><div class="eyebrow">${info[3]}</div>${game.phase==='Countdown' ? `<h1>${info[0]}</h1><div class="countdown" data-countdown="${game.startsAt}">3</div>` : `<div class="huge-icon">${info[2]}</div><h1>${info[0]}</h1><p>${info[1]}</p>`}${target}</div>`;
   }
   function heading(game, subtitle='') {
@@ -161,12 +163,12 @@
     const top = game.results.find(r => r.winner) || game.results.find(r => r.bottom) || game.results[0];
     const title = game.kind === 'wheel' ? `${escape(top?.name)} — det blev dig!` : game.kind === 'bomb' ? `${escape(game.results.find(r=>r.bottom)?.name)} fik bomben!` : top?.winner ? `${escape(top.name)} tager den!` : 'Sikke en runde!';
     const duelReveal = game.kind === 'duel' ? `<div class="duel-stage">${game.state.selected.map((id,i)=>`${i?'<div class="versus">VS</div>':''}<div class="duelist"><h2>${escape(nameOf(id))}</h2><span class="duel-choice">${choiceSymbol(game.state.choices?.[id])}</span></div>`).join('')}</div>` : '';
-    const elapsed = room.resultsStartedAt ? Math.max(0, now() - Date.parse(room.resultsStartedAt)) : 0;
+    const elapsed = room.resultsLeaderboardOpen ? room.resultsElapsedMs : (room.resultsStartedAt ? Math.max(0, now() - Date.parse(room.resultsStartedAt)) : 0);
     const roundBoard = `<section class="scoreboard"><h2>Rundens leaderboard</h2>${game.results.map((r,i)=>`<div class="score-line"><span>${r.rank}. ${escape(r.name)}</span><span>${r.points ? `+${r.points} point · ` : ''}${escape(r.detail)}</span></div>`).join('')}</section>`;
     const totalBoard = `<section class="scoreboard"><h2>Samlet leaderboard</h2><p class="muted">Point fra alle runder</p>${[...room.players].sort((a,b)=>b.score-a.score).map((p,i)=>`<div class="score-line"><span>${i+1}. ${escape(p.name)}</span><strong>${p.score} point</strong></div>`).join('')}</section>`;
     const spotlightResults = [top, [...game.results].reverse().find(r => r.playerId !== top?.playerId) || top].filter(Boolean);
     const spotlight = `<div class="results-list">${spotlightResults.map((r,i)=>`<div class="result-row ${i===0?'winner':'bottom'}"><span class="rank">${i===0?'✦':'!'}</span><div class="result-person"><strong>${escape(r.name)}</strong>${r.points?`<small>+${r.points} point</small>`:''}</div><div class="result-detail">${escape(r.detail)}</div></div>`).join('')}</div>`;
-    const body = elapsed < 10000 ? `${duelReveal}${spotlight}<p class="muted" style="text-align:center">Leaderboardet kommer om ${Math.max(0, 10 - Math.floor(elapsed / 1000))} sekunder.</p>` : `${roundBoard}${totalBoard}`;
+    const body = room.resultsLeaderboardOpen ? `${roundBoard}${totalBoard}` : `${duelReveal}${spotlight}<p class="muted" style="text-align:center">Se leaderboardet, når I vil.</p>`;
     return `<div class="results-title"><div class="eyebrow">RUNDE ${room.round} · ${games[game.kind][0]}</div><h1>${title}</h1>${game.kind==='math'?`<p class="muted">${escape(game.state.expression)} = ${game.state.answer}</p>`:''}</div>${body}`;
   }
   function renderHost() {
@@ -193,9 +195,11 @@
     if (!game) { renderKey = ''; return; }
     $('round-label').textContent = `RUNDE ${room.round} · ${room.quickPlay?'AUTOMATISK SPIL':'JERES VALG'}`;
     $('result-actions').hidden = game.phase !== 'Results';
+    $('show-leaderboard').hidden = game.phase !== 'Results' || room.resultsLeaderboardOpen;
+    $('show-results').hidden = game.phase !== 'Results' || !room.resultsLeaderboardOpen;
     $('pause').hidden = !room.quickPlay;
     const state = game.state;
-    const key = [game.id,game.phase,game.phase==='Results' ? Math.floor((now() - Date.parse(room.resultsStartedAt || room.serverNow)) / 1000) : '',game.kind==='reaction'?state.go:'',game.kind==='bomb'?state.holder:'',game.kind==='duel'?`${state.attempt}:${state.tie}:${JSON.stringify(state.choices)}`:''].join(':');
+    const key = [game.id,game.phase,game.phase==='Results' ? `${room.resultsLeaderboardOpen}:${room.resultsElapsedMs}` : '',game.kind==='reaction'?state.go:'',game.kind==='bomb'?state.holder:'',game.kind==='duel'?`${state.attempt}:${state.tie}:${JSON.stringify(state.choices)}`:''].join(':');
     if (key !== renderKey) {
       renderKey = key;
       let html = '';
@@ -204,7 +208,7 @@
       else if (game.phase==='Results') { html = resultsHtml(game); confetti(); }
       else switch(game.kind) {
         case 'cookie': html = heading(game,'Hvem har de hurtigste fingre?')+'<div id="live-leaderboard" class="leaderboard"></div>'; break;
-        case 'timing': html = heading(game,'Ingen ure. Bare mavefornemmelse.')+`<div class="expression">${state.target},000 <small>s</small></div><p class="muted" style="text-align:center" id="answered"></p>`; break;
+        case 'timing': html = heading(game,'Ingen ure. Bare mavefornemmelse.')+`<div class="expression">${Number(state.target).toLocaleString('da-DK', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <small>s</small></div><p class="muted" style="text-align:center" id="answered"></p>`; break;
         case 'reaction': html = heading(game)+`<div class="signal-word ${state.go?'go':''}">${state.go?'NU!':'VENT …'}</div><p class="muted" style="text-align:center" id="answered"></p>`; break;
         case 'math': html = heading(game)+`<div class="expression">${escape(state.expression)} = ?</div><p class="muted" style="text-align:center" id="answered"></p>`; break;
         case 'duel': html = heading(game,state.tie?'Uafgjort! Vi tager den igen …':'Kun de to udvalgte kan se deres valg.')+`<div class="duel-stage">${state.selected.map((id,i)=>`${i?'<div class="versus">VS</div>':''}<div class="duelist"><h2>${escape(nameOf(id))}</h2><span class="duel-choice">${choiceSymbol(state.choices?.[id])}</span></div>`).join('')}</div>`; break;
@@ -264,7 +268,7 @@
         html+=`<div class="controller ${game.kind==='bomb'?'bomb-controller':''}"><div class="eyebrow">${games[game.kind][3]}</div><h1>${games[game.kind][0]}</h1>`;
         switch(game.kind) {
           case 'cookie': html+=`<div class="timer" data-timer="${game.state.endsAt}"></div><button id="tap" class="action-pad"><span class="pad-symbol">🍪</span>Giv den gas!</button><div class="own-count" id="own-count">${mine.count||0}</div><p>godkendte klik</p>`; break;
-          case 'timing': html+=mine.submitted?submitted():`<p>Målet er ${game.state.target},000 sekunder.<br />${mine.started?'Mærk tiden. Tryk, når du er klar.':'Tryk start, når du er klar.'}</p><button id="timing-action" class="action-pad">${mine.started?'STOP':'START'}</button>`; break;
+          case 'timing': html+=mine.submitted?submitted():`<p>Målet er ${Number(game.state.target).toLocaleString('da-DK', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} sekunder.<br />${mine.started?'Mærk tiden. Tryk, når du er klar.':'Tryk start, når du er klar.'}</p><button id="timing-action" class="action-pad">${mine.started?'STOP':'START'}</button>`; break;
           case 'reaction': html+=mine.submitted?submitted(mine.falseStart?'Tyvstart! Vent på NU næste gang.':'Din reaktion er registreret.'): `<button id="react" class="action-pad ${game.state.go?'':'wait-pad'}"><span class="pad-symbol">ϟ</span>${game.state.go?'NU! TRYK!':'VENT …'}</button><p style="margin-top:22px">${game.state.go?'Så hurtigt du kan!':'Tryk først, når knappen bliver grøn.'}</p>`; break;
           case 'math': html+=mine.submitted?submitted():`<p class="expression" style="font-size:48px;color:var(--lime)">${escape(game.state.expression)}</p><form id="answer-form"><label for="answer">Dit svar</label><input id="answer" type="text" inputmode="numeric" pattern="[0-9]+" maxlength="6" autocomplete="off" required /><button class="button primary full">Send svar →</button></form>`; break;
           case 'duel': html+=!game.state.selected.includes(me.playerId)?'<div class="submitted-mark">⚔</div><p>Se duellen på den store skærm.</p>':game.state.tie?'<p>Uafgjort! Gør dig klar til at vælge igen …</p>':mine.submitted?submitted('Dit valg er hemmeligt. Vi venter på din modstander.'):'<p>Vælg i hemmelighed.</p><div class="choice-grid"><button class="choice-button" data-choice="rock">✊ <span>Sten</span></button><button class="choice-button" data-choice="paper">✋ <span>Papir</span></button><button class="choice-button" data-choice="scissors">✌️ <span>Saks</span></button></div>'; break;

@@ -2,12 +2,12 @@ using Gnist.Models;
 
 namespace Gnist.Games;
 
-public sealed class PerfectTiming(IReadOnlyList<string> players, DateTimeOffset now, int target)
-    : MiniGame("timing", players, now, target + 20)
+public sealed class PerfectTiming(IReadOnlyList<string> players, DateTimeOffset now, double target)
+    : MiniGame("timing", players, now, (int)Math.Ceiling(target + 20))
 {
     private readonly Dictionary<string, DateTimeOffset> starts = [];
     private readonly Dictionary<string, double> elapsed = [];
-    public static double Difference(double milliseconds, int targetSeconds) => Math.Abs(milliseconds - targetSeconds * 1000);
+    public static double Difference(double milliseconds, double targetSeconds) => Math.Abs(milliseconds - targetSeconds * 1000);
     protected override void Input(string id, PlayerInput input, DateTimeOffset now)
     {
         if (input.Action == "start" && starts.TryAdd(id, now)) Record(id, "start", "", now);

@@ -27,6 +27,8 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
             room.Round++;
             room.NextRoundAt = null;
             room.ResultsStartedAt = null;
+            room.ResultsLeaderboardOpen = false;
+            room.ResultsElapsedMs = 0;
             room.LastActivity = now;
         }
     }
@@ -79,14 +81,41 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
                 }
                 room.ArchivedRounds[game.Id] = Snapshots.CaptureRound(room, "Completed", Results(room));
                 room.ResultsStartedAt = now;
+                room.ResultsElapsedMs = 0;
+                room.ResultsLeaderboardOpen = false;
                 room.LastActivity = now;
             }
-            if (game.Phase(now) == "Results" && room.QuickPlay && room.HostConnections.Count > 0 && room.Players.Values.Any(p => p.Connected))
+            if (game.Phase(now) == "Results" && room.QuickPlay && !room.ResultsLeaderboardOpen && room.HostConnections.Count > 0 && room.Players.Values.Any(p => p.Connected))
             {
                 room.NextRoundAt ??= (room.ResultsStartedAt ?? now).AddSeconds(15);
                 if (now >= room.NextRoundAt) Start(room, null, true, room.Settings);
             }
             else if (room.HostConnections.Count == 0) room.NextRoundAt = null;
+        }
+    }
+    public void ShowLeaderboard(Room room)
+    {
+        lock (room.Gate)
+        {
+            if (room.Game is not { } game || game.Phase(clock.GetUtcNow()) != "Results") throw new PartyException("Leaderboardet kan vises, når runden er slut.");
+            var now = clock.GetUtcNow();
+            room.ResultsElapsedMs = Math.Clamp((long)(now - (room.ResultsStartedAt ?? now)).TotalMilliseconds, 0, 15000);
+            room.ResultsLeaderboardOpen = true;
+            room.NextRoundAt = null;
+            room.LastActivity = now;
+        }
+    }
+    public void ShowResults(Room room)
+    {
+        lock (room.Gate)
+        {
+            if (room.Game is not { } game || game.Phase(clock.GetUtcNow()) != "Results") throw new PartyException("Resultatet kan vises, når runden er slut.");
+            var now = clock.GetUtcNow();
+            var elapsed = Math.Clamp(room.ResultsElapsedMs, 0, 15000);
+            room.ResultsStartedAt = now.AddMilliseconds(-elapsed);
+            room.ResultsLeaderboardOpen = false;
+            room.NextRoundAt = room.QuickPlay ? now.AddMilliseconds(15000 - elapsed) : null;
+            room.LastActivity = now;
         }
     }
     public IReadOnlyList<RankedResult> Results(Room room)
@@ -111,7 +140,7 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
         return new
         {
             code = room.Code, serverNow = now, hostConnected = room.HostConnections.Count > 0, round = room.Round,
-            quickPlay = room.QuickPlay, nextRoundAt = room.NextRoundAt, resultsStartedAt = room.ResultsStartedAt, settings = room.Settings,
+            quickPlay = room.QuickPlay, nextRoundAt = room.NextRoundAt, resultsStartedAt = room.ResultsStartedAt, resultsLeaderboardOpen = room.ResultsLeaderboardOpen, resultsElapsedMs = room.ResultsElapsedMs, settings = room.Settings,
             recovered = room.Recovered,
             history = forHost ? room.ArchivedRounds.Values.OrderByDescending(r => r.Round.Number).Take(30).Select(r => new {
                 r.Round.Number, r.Round.Kind, r.Round.Status,

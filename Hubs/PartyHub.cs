@@ -52,6 +52,20 @@ public sealed class PartyHub(RoomService rooms, GameManager games, RoomBroadcast
         await persistence.SaveAsync(room);
         await broadcaster.Publish(room);
     }
+    public async Task ShowLeaderboard()
+    {
+        var (room, _) = rooms.Membership(Context.ConnectionId, true);
+        games.ShowLeaderboard(room);
+        await persistence.SaveAsync(room);
+        await broadcaster.Publish(room);
+    }
+    public async Task ShowResults()
+    {
+        var (room, _) = rooms.Membership(Context.ConnectionId, true);
+        games.ShowResults(room);
+        await persistence.SaveAsync(room);
+        await broadcaster.Publish(room);
+    }
     public async Task Leave()
     {
         var room = rooms.Disconnect(Context.ConnectionId, true);
