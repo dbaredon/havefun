@@ -1,0 +1,10 @@
+@page "/join/{code?}"
+@{ ViewData["Title"] = "Hop med i festen"; ViewData["Page"] = "player"; }
+<main class="player-shell">
+    <section id="join-panel" class="join-panel">
+        <div class="eyebrow">DIN TELEFON ER DIN CONTROLLER</div><h1>Plads til<br /><span class="lime">én mere.</span></h1><p class="muted">Find koden på den store skærm. Resten tager vi sammen.</p>
+        <form id="join-form"><label for="room-code">Rumkode</label><input id="room-code" name="code" placeholder="X7K2" value="@RouteData.Values["code"]" maxlength="4" minlength="4" required autocomplete="off" autocapitalize="characters" pattern="[a-zA-Z2-9]{4}" class="code-input" /><label for="player-name">Hvad skal vi kalde dig?</label><input id="player-name" name="name" placeholder="Dit navn" maxlength="20" required autocomplete="nickname" /><button class="button primary full" type="submit">Lad mig være med <span>→</span></button></form>
+        <p class="privacy-note">Ingen profil. Bare et navn og dit konkurrencegen.</p>
+    </section>
+    <section id="player-room" hidden><div class="room-topline"><span id="player-room-label" class="eyebrow"></span><button id="leave" class="text-button">Forlad spillet ↗</button></div><div id="player-content"></div></section>
+</main>

@@ -1,0 +1,27 @@
+@page
+@{ ViewData["Title"] = "Gør aftenen til et spil"; ViewData["Page"] = "home"; }
+<main class="landing">
+    <section class="hero">
+        <div class="hero-copy">
+            <div class="eyebrow"><span class="live-dot"></span> GODE VENNER. DÅRLIGE TABERE.</div>
+            <h1>Små spil.<br />Store <span class="accent-word">øjeblikke<span class="word-star">✳</span></span>.</h1>
+            <p class="hero-description">Læg hverdagens regler væk. Saml vennerne foran skærmen, og gør telefonerne til controllere.</p>
+            <div class="hero-actions"><button class="button primary" id="create">Start en fest <span>↗</span></button><a class="button secondary" href="/join">Jeg er med <span>→</span></a></div>
+            <div class="hero-note"><span>✓ Ingen app</span><span>✓ Ingen konti</span><span>✓ Bare jer</span></div>
+        </div>
+        <div class="hero-visual" aria-label="Syv spil til en aften med vennerne">
+            <div class="orbit-label">DIN STUE. JERES ARENA.</div>
+            <div class="feature-tile"><div class="tile-top"><span class="tiny-tag">01 / 07</span><span class="tiny-tag dark-tag">HURTIGE FINGRE</span></div><span class="feature-symbol">ϟ</span><div class="tile-bottom"><h2>Er du hurtigere<br />end dine venner?</h2><span class="round-arrow">↗</span></div></div>
+            <div class="floating-tag"><span class="live-dot"></span> Én skærm. Alle er med.</div>
+            <div class="small-tile"><span>◷</span><div>Stol på din<br /><strong>mavefornemmelse.</strong></div><span>↗</span></div>
+            <div class="visual-caption">LIDT KONKURRENCE KLÆDER EN GOD AFTEN.</div>
+        </div>
+    </section>
+    <section class="how-strip" aria-label="Sådan spiller I"><div><span class="step-number">01</span><p><strong>Tænd den store skærm</strong><span>Åbn på din computer eller dit TV.</span></p></div><div><span class="step-number">02</span><p><strong>Scan. Og så er du med.</strong><span>Vennerne hopper ind fra telefonen.</span></p></div><div><span class="step-number">03</span><p><strong>Lad konkurrencen begynde</strong><span>Vælg et spil. Eller lad os overraske jer.</span></p></div></section>
+    <section id="spillene" class="games-section"><div class="section-heading"><div><div class="eyebrow">ALDRIG BARE ÉN RUNDE</div><h2>Find jeres nye rivalisering.</h2></div><span class="muted">7 spil · 1 fælles skærm · op til 100 spillere</span></div><div class="game-grid">
+        @foreach (var game in GameCatalog.All) {
+            <article class="game-card"><div class="game-card-top"><span class="game-icon">@game.Icon</span><span class="eyebrow">@game.Category</span></div><h3>@game.Name</h3><p>@game.Description</p></article>
+        }
+    </div></section>
+    <footer><a class="brand" href="/"><span class="brand-spark">✳</span>@Party.Value.Brand</a><span>Skabt til at være sammen.</span><a href="/join">Har du en rumkode? ↗</a></footer>
+</main>

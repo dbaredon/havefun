@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#111310" />
+    <meta name="description" content="Saml vennerne. Scan koden. Lad spillet begynde. Syv live minispil, hvor din telefon er controlleren." />
+    <title>@ViewData["Title"] · @Party.Value.Brand</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body data-page="@ViewData["Page"]">
+    <header class="site-header">
+        <a class="brand" href="/" aria-label="@Party.Value.Brand forside"><span class="brand-spark">✳</span>@Party.Value.Brand<span class="brand-dot">®</span></a>
+        <nav aria-label="Hovedmenu">
+            @if ((string?)ViewData["Page"] == "home") {
+                <a class="nav-link" href="#spillene">Mød spillene <span>↗</span></a>
+                <a class="button small secondary" href="/join">Deltag med kode <span>↗</span></a>
+            } else {
+                <span id="connection" class="connection">Klar til at forbinde</span>
+                <button id="fullscreen" class="button small secondary host-only" type="button">Fuld skærm ↗</button>
+            }
+        </nav>
+    </header>
+    @RenderBody()
+    <div id="toast" class="toast" role="alert" hidden></div>
+    <script src="~/lib/signalr.min.js" defer></script>
+    <script src="~/js/app.js" asp-append-version="true" defer></script>
+</body>
+</html>
