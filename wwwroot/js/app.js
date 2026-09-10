@@ -203,7 +203,8 @@
     if (!game) { renderKey = ''; return; }
     $('round-label').textContent = `RUNDE ${room.round} · ${room.quickPlay?'AUTOMATISK SPIL':'JERES VALG'}`;
     $('result-actions').hidden = game.phase !== 'Results';
-    $('skip-game').hidden = game.phase === 'Results';
+    $('skip-game').hidden = false;
+    $('skip-game').textContent = game.phase === 'Results' ? 'Næste spil ↗' : 'Spring spil over ↗';
     $('show-leaderboard').hidden = game.phase !== 'Results' || room.resultsLeaderboardOpen;
     $('show-results').hidden = game.phase !== 'Results' || !room.resultsLeaderboardOpen;
     $('end-results').hidden = game.phase !== 'Results' || !room.quickPlay;
