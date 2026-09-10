@@ -12,6 +12,7 @@ public sealed class GameCatalog
         new("math", "Hovedbrud", "En lille udregning. Et stort tidspres.", "+", "HURTIGE HOVEDER"),
         new("pattern", "Tal mønster", "Hvad er næste tal i rækken? Find mønsteret.", "#", "LOGIK"),
         new("catch", "Fang den", "Ram cirklen 10 gange så hurtigt som muligt.", "●", "HURTIGE FINGRE"),
+        new("grid", "3×3 Grid", "Tryk 1–9 i rækkefølge. Forkert tryk blander grid’et.", "▦", "HURTIGE FINGRE"),
         new("duel", "Duellen", "To spillere. Sten, saks, papir. Én vinder.", "⚔", "ÉN MOD ÉN"),
         new("wheel", "Skæbnehjulet", "Alle er med. Hjulet bestemmer, hvem det bliver.", "✳", "REN TILFÆLDIGHED"),
         new("bomb", "Tikkende bombe", "Send den videre, før tiden løber ud.", "✹", "VARME HÆNDER")
@@ -24,6 +25,7 @@ public sealed class GameCatalog
         "math" => new QuickMath(players, now, Enumerable.Range(0, 5).Select(_ => MathProblem.Generate()).ToArray()),
         "pattern" => new NumberPattern(players, now),
         "catch" => new CatchIt(players, now),
+        "grid" => new GridRace(players, now),
         "duel" when players.Count >= 2 => new Duel(players, now, PickDuelists(players)),
         "wheel" when players.Count >= 2 => CreateWheel(players, now),
         "wheel" => new SpinWheel(players, now, 0),
