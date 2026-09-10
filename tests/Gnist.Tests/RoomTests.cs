@@ -74,7 +74,7 @@ public class RoomTests
         Assert.DoesNotContain(b.PlayerId,room.Game!.Players);
         clock.Now=room.Game.StartsAt.AddSeconds(1);
         manager.Input(room,a.PlayerId,new(room.Game.Id,"tap",null,1));
-        clock.Now=clock.Now.AddSeconds(12);
+        clock.Now=clock.Now.AddSeconds(60);
         manager.Tick(room);manager.Tick(room);
         Assert.Equal(3,room.Players[a.PlayerId].Score);
         clock.Now=clock.Now.AddSeconds(2);
