@@ -6,24 +6,20 @@ public sealed class HotPotato(IReadOnlyList<string> players, DateTimeOffset now,
     : MiniGame("bomb", players, now, fuseSeconds)
 {
     public string Holder { get; private set; } = players[holderIndex];
-    private DateTimeOffset lastPass;
-    private string? previous;
+    private DateTimeOffset holderReceivedAt = now.AddSeconds(6);
     public void RecoverHolder(IReadOnlyList<string> connected, DateTimeOffset now)
     {
         if (FinishedAt is not null || connected.Contains(Holder) || connected.Count == 0) return;
         Holder = connected[System.Security.Cryptography.RandomNumberGenerator.GetInt32(connected.Count)];
-        previous = null;
-        lastPass = now;
+        holderReceivedAt = now;
     }
     protected override void Input(string id, PlayerInput input, DateTimeOffset now)
     {
         if (input.Action != "pass" || id != Holder || input.Value == id || !Players.Contains(input.Value ?? "")) return;
-        if ((now - lastPass).TotalMilliseconds < 600) return;
-        if (Players.Count > 2 && input.Value == previous && (now - lastPass).TotalSeconds < 2) return;
+        if ((now - holderReceivedAt).TotalSeconds < 3) return;
         Record(id, $"pass:{input.Sequence}", input.Value!, now);
-        previous = Holder;
         Holder = input.Value!;
-        lastPass = now;
+        holderReceivedAt = now;
     }
     public override object PublicState(DateTimeOffset now) => new { holder = Holder, exploded = FinishedAt is not null };
     public override object PrivateState(string playerId) => new { hasBomb = Holder == playerId };

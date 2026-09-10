@@ -121,15 +121,11 @@
     if (!await invoke('Leave')) return;
     sessionStorage.removeItem(site.sessionKey('player', me.code)); me = null; await connection.stop(); location.href = site.route('join');
   });
-  function settings() {
-    return { clickSeconds: Number($('click-seconds').value) };
-  }
+  function settings() { return { clickSeconds: 10 }; }
   async function start(kind, quick) { await invoke('Start', kind, quick, settings()); }
   $('quick-start')?.addEventListener('click', () => start(null, true));
-  document.querySelectorAll('[data-game]').forEach(button => button.addEventListener('click', () => start(button.dataset.game, false)));
   $('next-game')?.addEventListener('click', () => start(null, true));
   $('back-lobby')?.addEventListener('click', () => invoke('Lobby'));
-  $('choose-next')?.addEventListener('click', async () => { if (await invoke('Lobby')) $('game-picker').open = true; });
   $('pause')?.addEventListener('click', () => invoke('Pause'));
   $('copy-link')?.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(site.route('join', code)); toast('Invitationslinket er kopieret.'); }
@@ -180,10 +176,7 @@
       $('round-history-list').dataset.key = historyKey;
       $('round-history-list').innerHTML = history.map(r => `<div class="game-card"><h3>Runde ${r.number} · ${games[r.kind]?.[0] || escape(r.kind)}</h3><p>${({Completed:'Afsluttet', Interrupted:'Afbrudt ved genstart', Cancelled:'Stoppet af værten'})[r.status] || 'I gang'}</p>${r.results.map(result => `<div class="score-line"><span>${result.rank}. ${escape(result.name)}</span><span>${result.points ? `+${result.points} point · ` : ''}${escape(result.detail)}</span></div>`).join('')}</div>`).join('');
     }
-    if (!hydratedSettings) {
-      hydratedSettings = true;
-      $('click-seconds').value = room.settings.clickSeconds;
-    }
+    hydratedSettings = true;
     const game = room.game;
     $('host-lobby').hidden = !!game; $('host-game').hidden = !game;
     $('player-count').textContent = `${room.players.filter(p=>p.connected).length} spillere`;
@@ -194,7 +187,6 @@
     }
     const connected = room.players.filter(p=>p.connected).length;
     $('quick-start').disabled = !connected;
-    document.querySelectorAll('[data-game]').forEach(b=>b.disabled=connected < (['duel','bomb'].includes(b.dataset.game)?2:1));
     if (!game) { renderKey = ''; return; }
     $('round-label').textContent = `RUNDE ${room.round} · ${room.quickPlay?'AUTOMATISK SPIL':'JERES VALG'}`;
     $('result-actions').hidden = game.phase !== 'Results';

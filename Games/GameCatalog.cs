@@ -22,7 +22,7 @@ public sealed class GameCatalog
         "math" => new QuickMath(players, now, MathProblem.Generate()),
         "duel" when players.Count >= 2 => new Duel(players, now, PickDuelists(players)),
         "wheel" => new SpinWheel(players, now, RandomNumberGenerator.GetInt32(players.Count)),
-        "bomb" when players.Count >= 2 => new HotPotato(players, now, RandomNumberGenerator.GetInt32(players.Count), RandomNumberGenerator.GetInt32(12, 26)),
+        "bomb" when players.Count >= 2 => new HotPotato(players, now, RandomNumberGenerator.GetInt32(players.Count), RandomNumberGenerator.GetInt32(60, 181)),
         _ => throw new PartyException("Vælg et spil, og sørg for, at mindst to spillere er med.")
     };
     private static string[] PickDuelists(IReadOnlyList<string> players)

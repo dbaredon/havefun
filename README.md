@@ -86,7 +86,7 @@ Hvis du allerede har oprettet rummet på localhost, er den enkleste løsning at 
 | Hovedbrud | Dynamisk genereret plus, minus eller gange. Korrekte svar rangeres efter svartid; forkerte og manglende svar står nederst. |
 | Duellen | To tilfældige spillere vælger hemmeligt sten, saks eller papir. Uafgjort giver omkamp. |
 | Skæbnehjulet | Serveren vælger tilfældigt. Hjulets animation lander på den valgte spiller. |
-| Tikkende bombe | Send bomben til en tilsluttet spiller før den skjulte serverstyrede lunte udløber. Kort afleveringspause; ingen øjeblikkelig retur ved 3+ spillere. |
+| Tikkende bombe | Send bomben til en tilsluttet spiller før den skjulte serverstyrede lunte på 1–3 minutter udløber. Modtageren skal vente 3 sekunder, før bomben kan sendes videre. |
 
 De bedste gyldige placeringer i færdighedsspil får 3, 2 og 1 point. Ens resultater deler placering. Hjulet og bomben giver ingen færdighedspoint. Alle er med igen næste runde.
 

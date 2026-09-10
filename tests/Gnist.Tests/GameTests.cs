@@ -99,11 +99,11 @@ public class GameTests
         var game=new HotPotato(Players,Now,0,12);
         Act(game,"b","pass",game.StartsAt,"c");
         Assert.Equal("a",game.Holder);
-        Act(game,"a","pass",game.StartsAt,"b");
-        Act(game,"b","pass",game.StartsAt.AddMilliseconds(650),"a");
-        Assert.Equal("b",game.Holder);
+        Act(game,"a","pass",game.StartsAt.AddSeconds(3),"b");
+        Act(game,"b","pass",game.StartsAt.AddSeconds(6),"a");
+        Assert.Equal("a",game.Holder);
         Act(game,"b","pass",game.StartsAt.AddSeconds(12),"c");
-        Assert.Equal("b",game.GetResults().Single(r=>r.Affected).PlayerId);
+        Assert.Equal("a",game.GetResults().Single(r=>r.Affected).PlayerId);
         Assert.DoesNotContain("endsAt",System.Text.Json.JsonSerializer.Serialize(game.PublicState(Now)));
     }
     [Fact] public void BombRecoversDisconnectedHolder()
