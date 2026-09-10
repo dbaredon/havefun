@@ -6,7 +6,7 @@ namespace Gnist.Games;
 public sealed class GameCatalog
 {
     public static readonly GameInfo[] All = [
-        new("cookie", "Klikamok", "10 sekunder. Én knap. Giv den alt, du har.", "◉", "HURTIGE FINGRE"),
+        new("cookie", "Klikamok", "10–60 sekunder. Én knap. Giv den alt, du har.", "◉", "HURTIGE FINGRE"),
         new("timing", "På sekundet", "Find dit indre ur. Stop så tæt på målet som muligt.", "◷", "MAVEFORNEMMELSE"),
         new("reaction", "Lynhurtig", "Vent på NU. Tryk før de andre. Ingen tyvstart.", "ϟ", "REFLEKSER"),
         new("math", "Hovedbrud", "En lille udregning. Et stort tidspres.", "+", "HURTIGE HOVEDER"),

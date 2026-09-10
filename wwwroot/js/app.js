@@ -122,8 +122,7 @@
     sessionStorage.removeItem(site.sessionKey('player', me.code)); me = null; await connection.stop(); location.href = site.route('join');
   });
   function settings() {
-    return { clickSeconds: Number($('click-seconds').value), consequence: $('consequence').value,
-      consequenceText: $('consequence-text').value.trim(), penaltyPoints: Number($('penalty-points').value) };
+    return { clickSeconds: Number($('click-seconds').value) };
   }
   async function start(kind, quick) { await invoke('Start', kind, quick, settings()); }
   $('quick-start')?.addEventListener('click', () => start(null, true));
@@ -167,7 +166,9 @@
     const top = game.results.find(r => r.winner) || game.results.find(r => r.bottom) || game.results[0];
     const title = game.kind === 'wheel' ? `${escape(top?.name)} — det blev dig!` : game.kind === 'bomb' ? `${escape(game.results.find(r=>r.bottom)?.name)} fik bomben!` : top?.winner ? `${escape(top.name)} tager den!` : 'Sikke en runde!';
     const duelReveal = game.kind === 'duel' ? `<div class="duel-stage">${game.state.selected.map((id,i)=>`${i?'<div class="versus">VS</div>':''}<div class="duelist"><h2>${escape(nameOf(id))}</h2><span class="duel-choice">${choiceSymbol(game.state.choices?.[id])}</span></div>`).join('')}</div>` : '';
-    return `<div class="results-title"><div class="eyebrow">RUNDE ${room.round} · ${games[game.kind][0]}</div><h1>${title}</h1>${game.kind==='math'?`<p class="muted">${escape(game.state.expression)} = ${game.state.answer}</p>`:''}</div>${duelReveal}<div class="results-list">${game.results.map((r,i)=>`<div class="result-row ${r.winner?'winner':''} ${r.bottom?'bottom':''}" style="animation-delay:${Math.min(i,20)*60}ms"><span class="rank">${r.winner?'✦':r.rank}</span><div class="result-person"><strong>${escape(r.name)}</strong>${r.consequence?`<small>${escape(r.consequence)}</small>`:''}</div><div class="result-detail">${escape(r.detail)}${r.bottom?'<br /><small>Rundens udvalgte</small>':''}</div></div>`).join('')}</div><details class="scoreboard"><summary>Aftenens samlede point <span>↓</span></summary>${[...room.players].sort((a,b)=>b.score-a.score).map(p=>`<div class="score-line"><span>${escape(p.name)}</span><span>${p.score} point${p.penalties ? ` · ${p.penalties} strafpoint` : ''}</span></div>`).join('')}</details>`;
+    const roundBoard = `<section class="scoreboard"><h2>Rundens leaderboard</h2>${game.results.map((r,i)=>`<div class="score-line"><span>${r.rank}. ${escape(r.name)}</span><span>${r.points ? `+${r.points} point · ` : ''}${escape(r.detail)}</span></div>`).join('')}</section>`;
+    const totalBoard = `<section class="scoreboard"><h2>Samlet leaderboard</h2><p class="muted">Point fra alle runder</p>${[...room.players].sort((a,b)=>b.score-a.score).map((p,i)=>`<div class="score-line"><span>${i+1}. ${escape(p.name)}</span><strong>${p.score} point</strong></div>`).join('')}</section>`;
+    return `<div class="results-title"><div class="eyebrow">RUNDE ${room.round} · ${games[game.kind][0]}</div><h1>${title}</h1>${game.kind==='math'?`<p class="muted">${escape(game.state.expression)} = ${game.state.answer}</p>`:''}</div>${duelReveal}<div class="results-list">${game.results.map((r,i)=>`<div class="result-row ${r.winner?'winner':''} ${r.bottom?'bottom':''}" style="animation-delay:${Math.min(i,20)*60}ms"><span class="rank">${r.winner?'✦':r.rank}</span><div class="result-person"><strong>${escape(r.name)}</strong>${r.points?`<small>+${r.points} point</small>`:''}</div><div class="result-detail">${escape(r.detail)}</div></div>`).join('')}</div>${roundBoard}${totalBoard}`;
   }
   function renderHost() {
     $('host-error').hidden = true;
@@ -177,14 +178,11 @@
     const historyKey = history.map(r => `${r.number}:${r.status}`).join(',');
     if ($('round-history-list').dataset.key !== historyKey) {
       $('round-history-list').dataset.key = historyKey;
-      $('round-history-list').innerHTML = history.map(r => `<div class="game-card"><h3>Runde ${r.number} · ${games[r.kind]?.[0] || escape(r.kind)}</h3><p>${({Completed:'Afsluttet', Interrupted:'Afbrudt ved genstart', Cancelled:'Stoppet af værten'})[r.status] || 'I gang'}</p>${r.results.map(result => `<div class="score-line"><span>${result.rank}. ${escape(result.name)}</span><span>${escape(result.detail)}</span></div>`).join('')}</div>`).join('');
+      $('round-history-list').innerHTML = history.map(r => `<div class="game-card"><h3>Runde ${r.number} · ${games[r.kind]?.[0] || escape(r.kind)}</h3><p>${({Completed:'Afsluttet', Interrupted:'Afbrudt ved genstart', Cancelled:'Stoppet af værten'})[r.status] || 'I gang'}</p>${r.results.map(result => `<div class="score-line"><span>${result.rank}. ${escape(result.name)}</span><span>${result.points ? `+${result.points} point · ` : ''}${escape(result.detail)}</span></div>`).join('')}</div>`).join('');
     }
     if (!hydratedSettings) {
       hydratedSettings = true;
       $('click-seconds').value = room.settings.clickSeconds;
-      $('consequence').value = room.settings.consequence;
-      $('consequence-text').value = room.settings.consequenceText;
-      $('penalty-points').value = room.settings.penaltyPoints;
     }
     const game = room.game;
     $('host-lobby').hidden = !!game; $('host-game').hidden = !game;
@@ -265,7 +263,7 @@
       else if (game.phase==='Finished') html+='<div class="waiting"><div class="waiting-symbol">✦</div><h1>Runden er slut!</h1><p>Kig op. Resultaterne kommer nu.</p></div>';
       else if(game.phase==='Results') {
         const result=game.results.find(r=>r.playerId===me.playerId);
-        html+=`<div class="controller"><div class="eyebrow">${games[game.kind][0]} · RESULTAT</div><div class="player-result"><h2>${result?.winner?'Du tager den! ✦':result?.bottom?'Det blev dig!':result?'Godt spillet.':'Sikke en duel!'}</h2>${result?`<p>${escape(result.detail)}</p>${!['wheel','bomb'].includes(game.kind)?`<p>Placering: ${result.rank}</p>`:''}<p class="lime">${escape(result.consequence)}</p>`:''}</div><p>Se alle resultaterne på den store skærm.<br />Alle er med i næste runde.</p></div>`;
+        html+=`<div class="controller"><div class="eyebrow">${games[game.kind][0]} · RESULTAT</div><div class="player-result"><h2>${result?.winner?'Du tager den! ✦':result?.bottom?'Det blev dig!':result?'Godt spillet.':'Sikke en duel!'}</h2>${result?`<p>${escape(result.detail)}</p>${!['wheel','bomb'].includes(game.kind)?`<p>Placering: ${result.rank}</p>`:''}${result.points?`<p class="lime">+${result.points} point</p>`:''}`:''}</div><p>Se alle resultaterne på den store skærm.<br />Alle er med i næste runde.</p></div>`;
         if(result?.winner) confetti();
       } else {
         html+=`<div class="controller ${game.kind==='bomb'?'bomb-controller':''}"><div class="eyebrow">${games[game.kind][3]}</div><h1>${games[game.kind][0]}</h1>`;

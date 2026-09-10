@@ -48,12 +48,12 @@ public sealed class Room(string code, string hostToken, DateTimeOffset now, bool
     public RoomSettings Settings { get; set; } = new();
 }
 
-public sealed record RoomSettings(int ClickSeconds = 10, string Consequence = "none", string ConsequenceText = "", int PenaltyPoints = 1);
+public sealed record RoomSettings(int ClickSeconds = 10);
 public sealed record JoinReceipt(string Code, string PlayerId, string PlayerToken, string Name);
 public sealed record HostReceipt(string Code, string HostToken);
 public sealed record PlayerInput(string RoundId, string Action, string? Value, long Sequence);
 public sealed record GameResult(string PlayerId, double Value, string Detail, bool Valid = true, bool Affected = false);
-public sealed record RankedResult(string PlayerId, string Name, int Rank, double Value, string Detail, bool Valid, bool Winner, bool Bottom, string Consequence);
+public sealed record RankedResult(string PlayerId, string Name, int Rank, double Value, string Detail, bool Valid, bool Winner, bool Bottom, int Points);
 public sealed record GameInfo(string Id, string Name, string Description, string Icon, string Category);
 public sealed class PartyException(string message) : Exception(message);
 

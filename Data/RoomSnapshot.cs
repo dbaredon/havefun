@@ -19,7 +19,7 @@ public static class Snapshots
             RoundId = game.Id, PlayerId = s.PlayerId, Key = s.Key, Value = s.Value, ReceivedAt = s.ReceivedAt.ToUnixTimeMilliseconds()
         }).ToArray(), (results ?? []).Select(r => new StoredResult {
             RoundId = game.Id, PlayerId = r.PlayerId, Rank = r.Rank, Value = r.Value, Detail = r.Detail,
-            Valid = r.Valid, Winner = r.Winner, Bottom = r.Bottom, Consequence = r.Consequence
+            Valid = r.Valid, Winner = r.Winner, Bottom = r.Bottom, Consequence = ""
         }).ToArray());
     }
     public static RoomSnapshot Capture(Room room)

@@ -13,9 +13,8 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
             RoomService.EnsureOpen(room);
             var now = clock.GetUtcNow();
             if (room.Game is not null && room.Game.Phase(now) != "Results") throw new PartyException("Vent, til den nuværende runde er slut.");
-            if (settings.ClickSeconds is < 5 or > 60 || settings.Consequence is not ("none" or "points" or "challenge" or "custom")
-                || settings.ConsequenceText.Length > 120 || settings.PenaltyPoints is < 1 or > 20)
-                throw new PartyException("Tjek indstillingerne: 5–60 sekunder og højst 120 tegn.");
+            if (settings.ClickSeconds is < 10 or > 60)
+                throw new PartyException("Klikamok skal vare mellem 10 og 60 sekunder.");
             var players = room.Players.Values.Where(p => p.Connected).Select(p => p.Id).ToArray();
             if (players.Length == 0) throw new PartyException("Vent på mindst én spiller.");
             kind = quick ? catalog.RandomNext(room.PreviousGame, players.Length) : kind;
@@ -75,8 +74,7 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
                 foreach (var result in Results(room))
                 {
                     var player = room.Players[result.PlayerId];
-                    if (game.Kind is not ("wheel" or "bomb") && result.Valid) player.Score += Math.Max(0, 4 - result.Rank);
-                    if (result.Bottom && room.Settings.Consequence == "points") player.Penalties += room.Settings.PenaltyPoints;
+                    player.Score += result.Points;
                 }
                 room.ArchivedRounds[game.Id] = Snapshots.CaptureRound(room, "Completed", Results(room));
                 room.LastActivity = now;
@@ -94,20 +92,14 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
         if (room.Game is not { FinishedAt: not null } game) return [];
         var results = game.GetResults();
         var isEvent = game.Kind is "wheel" or "bomb";
-        var consequence = room.Settings.Consequence switch
-        {
-            "points" => $"+{room.Settings.PenaltyPoints} strafpoint",
-            "challenge" => string.IsNullOrWhiteSpace(room.Settings.ConsequenceText) ? "Lav din bedste sejrsdans i 10 sekunder" : room.Settings.ConsequenceText,
-            "custom" => room.Settings.ConsequenceText,
-            _ => ""
-        };
         var rank = 1;
         return results.Select((r, i) =>
         {
             if (i > 0 && (r.Value != results[i - 1].Value || r.Valid != results[i - 1].Valid)) rank = i + 1;
             var winner = !isEvent && r.Valid && rank == 1;
             var bottom = isEvent ? r.Affected : !winner && i >= Math.Max(1, results.Count - 3);
-            return new RankedResult(r.PlayerId, room.Players[r.PlayerId].Name, rank, r.Value, r.Detail, r.Valid, winner, bottom, bottom ? consequence : "");
+            var points = !isEvent && r.Valid ? Math.Max(0, 4 - rank) : 0;
+            return new RankedResult(r.PlayerId, room.Players[r.PlayerId].Name, rank, r.Value, r.Detail, r.Valid, winner, bottom, points);
         }).ToList();
     }
     public object Snapshot(Room room, bool forHost = false)
@@ -121,7 +113,7 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
             recovered = room.Recovered,
             history = forHost ? room.ArchivedRounds.Values.OrderByDescending(r => r.Round.Number).Take(30).Select(r => new {
                 r.Round.Number, r.Round.Kind, r.Round.Status,
-                results = r.Results.OrderBy(x => x.Rank).Select(x => new { name = room.Players[x.PlayerId].Name, x.Rank, x.Detail }).ToArray()
+                results = r.Results.OrderBy(x => x.Rank).Select(x => new { name = room.Players[x.PlayerId].Name, x.Rank, x.Detail, points = x.Valid && x.Rank is >= 1 and <= 3 ? 4 - x.Rank : 0 }).ToArray()
             }).ToArray() : null,
             players = room.Players.Values.Where(p => !p.Left).Select(p => new { p.Id, p.Name, p.Connected, p.Score, p.Penalties }).ToArray(),
             game = game is null ? null : new { game.Id, game.Kind, phase = game.Phase(now), game.StartsAt,

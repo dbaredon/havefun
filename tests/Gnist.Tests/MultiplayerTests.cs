@@ -67,8 +67,8 @@ public class MultiplayerTests
         var lobby=await Until(states.Reader,s=>s.GetProperty("players").GetArrayLength()==2);
         Assert.Equal(JsonValueKind.Null,lobby.GetProperty("game").ValueKind);
         // A normal player cannot start a game or borrow their player token as a host token.
-        await Assert.ThrowsAsync<HubException>(()=>a.InvokeAsync("Start","cookie",false,new RoomSettings(5)));
-        await host.InvokeAsync("Start","cookie",false,new RoomSettings(5));
+        await Assert.ThrowsAsync<HubException>(()=>a.InvokeAsync("Start","cookie",false,new RoomSettings(9)));
+        await host.InvokeAsync("Start","cookie",false,new RoomSettings(10));
         var playing=await Until(states.Reader,s=>s.GetProperty("game").ValueKind==JsonValueKind.Object&&s.GetProperty("game").GetProperty("phase").GetString()=="Playing");
         var id=playing.GetProperty("game").GetProperty("id").GetString()!;
         await a.InvokeAsync("Act",new PlayerInput(id,"tap",null,1));

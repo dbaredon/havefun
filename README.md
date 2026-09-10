@@ -80,7 +80,7 @@ Hvis du allerede har oprettet rummet på localhost, er den enkleste løsning at 
 
 | Spil | Handling og resultat |
 | --- | --- |
-| Klikamok | Flest servergodkendte klik på 10 sekunder. Værten kan vælge 5–60 sekunder. Maks. ét godkendt klik pr. 40 ms og dubletbeskyttelse. |
+| Klikamok | Flest servergodkendte klik. Værten vælger 10–60 sekunder. Maks. ét godkendt klik pr. 40 ms og dubletbeskyttelse. |
 | På sekundet | Start/stop et skjult ur. Serveren måler afvigelsen fra 3, 5, 7 eller 10 sekunder. Nærmest vinder. |
 | Lynhurtig | Vent på serverens tilfældige NU-signal. Tyvstart registreres; første forsøg er endeligt. |
 | Hovedbrud | Dynamisk genereret plus, minus eller gange. Korrekte svar rangeres efter svartid; forkerte og manglende svar står nederst. |
@@ -90,7 +90,7 @@ Hvis du allerede har oprettet rummet på localhost, er den enkleste løsning at 
 
 De bedste gyldige placeringer i færdighedsspil får 3, 2 og 1 point. Ens resultater deler placering. Hjulet og bomben giver ingen færdighedspoint. Alle er med igen næste runde.
 
-Konsekvenser er valgfrie: strafpoint, udfordring eller egen tekst. De gælder de nederste op til tre spillere (vinderne undtages), taberen af duellen, den udvalgte på hjulet eller den, der sidder med bomben. Der er ingen indbygget alkoholregel. Point og strafpoint holdes adskilt.
+Efter hver runde vises rundens leaderboard med placering og point. Pointene samles i et separat leaderboard for hele aftenen; gyldige placeringer giver 3, 2 og 1 point. Tilfældighedsspil giver ingen point.
 
 ## Arkitektur
 
@@ -142,10 +142,10 @@ Livscyklus: **Waiting (lobby) → Intro → Countdown → Playing → Finished �
 | Tabel | Gemmer |
 | --- | --- |
 | Rooms | Rumkode, indstillinger, aktivitet og hash af værtstoken |
-| Players | Stabilt spiller-ID, navn, point, strafpoint og hash af spillertoken |
+| Players | Stabilt spiller-ID, navn, samlede point og hash af spillertoken |
 | Rounds | Spiltype, rundenummer, status og gemt spiltilstand |
 | Submissions | Servergodkendte svar, valg, klikantal og tidspunkter |
-| Results | Placeringer, resultatdetaljer og konsekvenser |
+| Results | Placeringer, point og resultatdetaljer |
 
 Oprettelse, join, værtshandlinger og svar afventer en databaseskrivning. Klik samles i et checkpoint cirka hvert sekund; et pludseligt nedbrud kan derfor miste input siden sidste checkpoint. Timerafsluttede runder gemmes også ved checkpoint. Databaseudfald kan forlænge dette interval. Point og afsluttede resultater gemmes i samme transaktion, og ældre snapshots kan ikke overskrive nyere data.
 
@@ -177,7 +177,7 @@ Indstillinger findes i `appsettings.json` og kan overskrives med miljøvariabler
 | GitHub Pages-frontend / tilladt origin | Tom (lokal drift) | `Party__FrontendBaseUrl` |
 | Offentlig URL til QR-koder | Aktuel request-origin | `Party__PublicBaseUrl` |
 
-Indstil `Party__PublicBaseUrl` til den fulde HTTPS-adresse i produktion. Indstil også `AllowedHosts` til det/de rigtige hostnavne. Værten kan vælge spilvarighed og konsekvenser i lobbyen. Gemte data gendannes efter genstart/deployment; den igangværende runde afbrydes.
+Indstil `Party__PublicBaseUrl` til den fulde HTTPS-adresse i produktion. Indstil også `AllowedHosts` til det/de rigtige hostnavne. Værten vælger Klikamok-varighed i lobbyen. Gemte data gendannes efter genstart/deployment; den igangværende runde afbrydes.
 
 ## Test
 

@@ -36,7 +36,7 @@ jobs:
         run: node --test tests/frontend/*.test.cjs
       - name: Export the real UI as static HTML
         env:
-          GNIST_API_URL: ${{ vars.GNIST_API_URL }}
+          GNIST_API_URL: ${{ vars.GNIST_API_URL || 'https://gnist-l1pd.onrender.com' }}
           GNIST_BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: dotnet run --project tools/Gnist.Export/Gnist.Export.csproj --configuration Release -- artifacts/pages
       - name: Check exported pages and assets
