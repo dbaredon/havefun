@@ -12,6 +12,7 @@ Efter hver runde vises resultatet med den bedste og dårligste placering. De to 
 | **På sekundet** | Skærmen bliver grøn, og tiden starter automatisk. Stop fra telefonen, når du tror, det tilfældige mål på 1–60 sekunder er nået. Nærmest vinder. |
 | **Lynhurtig** | Vent på signalet **NU!** og tryk så hurtigt som muligt. For tidlige tryk tæller som tyvstart. |
 | **Hovedbrud** | Løs regnestykket hurtigere end de andre. Korrekte svar rangeres efter svartid. |
+| **Tal mønster** | Find det manglende tal i en tilfældig række med fem tal. Spørgsmålstegnet kan stå hvor som helst. |
 | **Duellen** | To spillere mødes i sten, saks, papir. Uafgjort giver en ny omgang. |
 | **Skæbnehjulet** | Hjulet vælger tilfældigt en spiller. Alle følger med på den store skærm. |
 | **Tikkende bombe** | Send bomben videre, før den tilfældige lunte på 30–90 sekunder udløber. En modtager skal vente 3 sekunder, før bomben kan sendes videre. |
