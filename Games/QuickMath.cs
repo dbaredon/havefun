@@ -28,7 +28,8 @@ public sealed class QuickMath(IReadOnlyList<string> players, DateTimeOffset now,
         if (input.Action != "answer" || !int.TryParse(input.Value, out _)) return;
         var correct = problem.Evaluate(input.Value);
         var ms = (now - StartsAt).TotalMilliseconds;
-        answers.TryAdd(id, new(id, ms, correct ? $"Rigtigt · {ms / 1000:F2} s" : "Forkert svar", correct));
+        if (answers.TryAdd(id, new(id, ms, correct ? $"Rigtigt · {ms / 1000:F2} s" : "Forkert svar", correct)))
+            Record(id, "answer", input.Value!, now);
         if (answers.Count == Players.Count) Finish(now);
     }
     public override object PublicState(DateTimeOffset now) => new { expression = now >= StartsAt ? problem.Expression : null,

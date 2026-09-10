@@ -171,6 +171,14 @@
   }
   function renderHost() {
     $('host-error').hidden = true;
+    $('recovered-notice').hidden = !room.recovered;
+    const history = room.history || [];
+    $('round-history').hidden = history.length === 0;
+    const historyKey = history.map(r => `${r.number}:${r.status}`).join(',');
+    if ($('round-history-list').dataset.key !== historyKey) {
+      $('round-history-list').dataset.key = historyKey;
+      $('round-history-list').innerHTML = history.map(r => `<div class="game-card"><h3>Runde ${r.number} · ${games[r.kind]?.[0] || escape(r.kind)}</h3><p>${({Completed:'Afsluttet', Interrupted:'Afbrudt ved genstart', Cancelled:'Stoppet af værten'})[r.status] || 'I gang'}</p>${r.results.map(result => `<div class="score-line"><span>${result.rank}. ${escape(result.name)}</span><span>${escape(result.detail)}</span></div>`).join('')}</div>`).join('');
+    }
     if (!hydratedSettings) {
       hydratedSettings = true;
       $('click-seconds').value = room.settings.clickSeconds;

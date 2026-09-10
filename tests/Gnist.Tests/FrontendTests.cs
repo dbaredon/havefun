@@ -20,7 +20,7 @@ public class FrontendTests
     [InlineData("null", false, "POST")]
     public async Task CorsAndHubRequestsOnlyAllowConfiguredFrontend(string origin, bool allowed, string method)
     {
-        await using var app = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        await using var app = new GnistWebFactory().WithWebHostBuilder(builder =>
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string,string?> {
                 ["Party:FrontendBaseUrl"] = "https://dbaredon.github.io/havefun"
             })));

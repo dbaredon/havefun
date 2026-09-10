@@ -1,3 +1,7 @@
+using Gnist.Data;
+using System.Security.Cryptography;
+using System.Text;
+
 namespace Gnist.Models;
 
 public sealed class PartyOptions
@@ -10,22 +14,28 @@ public sealed class PartyOptions
     public string PublicBaseUrl { get; set; } = "";
 }
 
-public sealed class Player(string id, string name, string token)
+public sealed class Player(string id, string name, string token, bool tokenIsHash = false)
 {
     public string Id { get; } = id;
     public string Name { get; } = name;
-    public string Token { get; } = token;
+    public string TokenHash { get; } = tokenIsHash ? token : SessionTokens.Hash(token);
+    public bool Left { get; set; }
     public HashSet<string> Connections { get; } = [];
-    public bool Connected => Connections.Count > 0;
+    public bool Connected => !Left && Connections.Count > 0;
     public int Score { get; set; }
     public int Penalties { get; set; }
 }
 
-public sealed class Room(string code, string hostToken, DateTimeOffset now)
+public sealed class Room(string code, string hostToken, DateTimeOffset now, bool tokenIsHash = false)
 {
     public object Gate { get; } = new();
     public string Code { get; } = code;
-    public string HostToken { get; } = hostToken;
+    public string Id { get; init; } = Guid.NewGuid().ToString("N");
+    public DateTimeOffset CreatedAt { get; } = now;
+    public long Revision { get; set; }
+    public bool Recovered { get; set; }
+    public Dictionary<string, RoundSnapshot> ArchivedRounds { get; } = [];
+    public string HostTokenHash { get; } = tokenIsHash ? hostToken : SessionTokens.Hash(hostToken);
     public HashSet<string> HostConnections { get; } = [];
     public Dictionary<string, Player> Players { get; } = [];
     public Games.MiniGame? Game { get; set; }
@@ -46,3 +56,11 @@ public sealed record GameResult(string PlayerId, double Value, string Detail, bo
 public sealed record RankedResult(string PlayerId, string Name, int Rank, double Value, string Detail, bool Valid, bool Winner, bool Bottom, string Consequence);
 public sealed record GameInfo(string Id, string Name, string Description, string Icon, string Category);
 public sealed class PartyException(string message) : Exception(message);
+
+public sealed record RecordedSubmission(string PlayerId, string Key, string Value, DateTimeOffset ReceivedAt);
+public static class SessionTokens
+{
+    public static string Hash(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+    public static bool Matches(string hash, string? token) => token is not null &&
+        CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(hash), Encoding.UTF8.GetBytes(Hash(token)));
+}

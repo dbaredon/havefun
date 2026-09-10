@@ -27,6 +27,9 @@ public abstract class MiniGame : IMiniGame
     public DateTimeOffset StartsAt { get; }
     protected DateTimeOffset EndsAt { get; set; }
     public DateTimeOffset? FinishedAt { get; private set; }
+    private readonly Dictionary<string, RecordedSubmission> submissions = [];
+    protected void Record(string playerId, string key, string value, DateTimeOffset now) => submissions[$"{playerId}:{key}"] = new(playerId, key, value, now);
+    public virtual IReadOnlyList<RecordedSubmission> GetSubmissions() => submissions.Values.ToArray();
     public bool Awarded { get; set; }
     public string Phase(DateTimeOffset now) => FinishedAt is { } end ? (now < end.AddSeconds(1) ? "Finished" : "Results")
         : now < StartsAt.AddSeconds(-3) ? "Intro" : now < StartsAt ? "Countdown" : "Playing";

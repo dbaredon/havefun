@@ -40,7 +40,7 @@ public class MultiplayerTests
     [Fact] public async Task RealSignalRFlow_Create_Qr_Join_Lobby_Play_Results_Reconnect()
     {
         const string frontendOrigin = "https://dbaredon.github.io";
-        await using var app=new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        await using var app=new GnistWebFactory().WithWebHostBuilder(builder =>
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> {
                 ["Party:FrontendBaseUrl"] = frontendOrigin + "/havefun"
             })));
@@ -95,13 +95,13 @@ public class MultiplayerTests
     }
     [Fact] public async Task ApiRejectsUnmarkedCreationAndInvalidRooms()
     {
-        await using var app=new WebApplicationFactory<Program>();var client=app.CreateClient();
+        await using var app=new GnistWebFactory();var client=app.CreateClient();
         Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsync("/api/rooms",null)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound,(await client.GetAsync("/api/rooms/NOPE/qr")).StatusCode);
     }
     [Fact] public async Task PrivateDuelChoicesNeverReachOtherPlayers()
     {
-        await using var app=new WebApplicationFactory<Program>();var created=await Create(app.CreateClient());
+        await using var app=new GnistWebFactory();var created=await Create(app.CreateClient());
         await using var host=Connect(app);await using var a=Connect(app);await using var b=Connect(app);
         var states=Channel.CreateUnbounded<JsonElement>();b.On<JsonElement>("State",s=>states.Writer.TryWrite(s));
         await host.StartAsync();await a.StartAsync();await b.StartAsync();

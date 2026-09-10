@@ -2,6 +2,8 @@
 @{ ViewData["Title"] = "Jeres fest"; ViewData["Page"] = "host"; }
 <main class="host-shell">
     <div class="room-topline"><span class="eyebrow">FESTENS HOVEDKVARTER</span><div class="room-chip">RUM <strong id="host-code">@RouteData.Values["code"]</strong><span class="live-dot"></span></div></div>
+    <div id="recovered-notice" class="notice" hidden>Festen er gendannet. Navne og point er bevaret. En eventuel igangværende runde blev afbrudt — vælg et nyt spil, når alle er tilbage.</div>
+    <details id="round-history" hidden><summary>Tidligere runder <span>↓</span></summary><div id="round-history-list"></div></details>
     <div id="host-error" class="notice" hidden></div>
     <section id="host-lobby" class="lobby-grid">
         <div class="lobby-main"><div class="eyebrow lime">INVITÉR DINE YNDLINGSMODSTANDERE</div><h1>Godt selskab.<br /><span class="lime">Snart dårlig stemning.</span></h1><p class="muted">Scan koden, vælg et navn, og find dit konkurrencegen frem.</p><div class="players-title"><h2>Hvem er med?</h2><span id="player-count" class="pill">0 spillere</span></div><div id="player-list" class="player-list"><p class="empty-state">De første rivaler er på vej …</p></div></div>

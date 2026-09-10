@@ -15,3 +15,8 @@ tests
 .DS_Store
 
 tools
+
+.local-data
+**/*.db
+**/*.db-shm
+**/*.db-wal

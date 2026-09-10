@@ -20,6 +20,7 @@ public sealed class HotPotato(IReadOnlyList<string> players, DateTimeOffset now,
         if (input.Action != "pass" || id != Holder || input.Value == id || !Players.Contains(input.Value ?? "")) return;
         if ((now - lastPass).TotalMilliseconds < 600) return;
         if (Players.Count > 2 && input.Value == previous && (now - lastPass).TotalSeconds < 2) return;
+        Record(id, $"pass:{input.Sequence}", input.Value!, now);
         previous = Holder;
         Holder = input.Value!;
         lastPass = now;

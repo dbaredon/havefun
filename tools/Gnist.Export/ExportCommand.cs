@@ -24,7 +24,7 @@ internal static partial class ExportCommand
 
         Directory.CreateDirectory(output);
         await using var factory = new WebApplicationFactory<global::Program>()
-            .WithWebHostBuilder(builder => builder.UseContentRoot(root).UseEnvironment("Development"));
+            .WithWebHostBuilder(builder => builder.UseContentRoot(root).UseEnvironment("Export"));
         using var client = factory.CreateClient();
         foreach (var (route, file) in new[] { ("/", "index.html"), ("/join", "join/index.html"), ("/host/ROOM", "host/index.html") })
         {

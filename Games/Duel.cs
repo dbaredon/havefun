@@ -18,7 +18,7 @@ public sealed class Duel(IReadOnlyList<string> players, DateTimeOffset now, IRea
     protected override void Input(string id, PlayerInput input, DateTimeOffset now)
     {
         if (!selected.Contains(id) || input.Action != $"choose:{Attempt}" || !IsChoice(input.Value) || replayAt is not null) return;
-        choices.TryAdd(id, input.Value!);
+        if (choices.TryAdd(id, input.Value!)) Record(id, $"choose:{Attempt}", input.Value!, now);
         if (choices.Count != 2) return;
         if (Winner(choices[selected[0]], choices[selected[1]]) == 0) replayAt = now.AddSeconds(2);
         else Finish(now);

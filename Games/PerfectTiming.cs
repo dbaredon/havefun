@@ -10,8 +10,9 @@ public sealed class PerfectTiming(IReadOnlyList<string> players, DateTimeOffset 
     public static double Difference(double milliseconds, int targetSeconds) => Math.Abs(milliseconds - targetSeconds * 1000);
     protected override void Input(string id, PlayerInput input, DateTimeOffset now)
     {
-        if (input.Action == "start") starts.TryAdd(id, now);
-        if (input.Action == "stop" && starts.TryGetValue(id, out var start)) elapsed.TryAdd(id, (now - start).TotalMilliseconds);
+        if (input.Action == "start" && starts.TryAdd(id, now)) Record(id, "start", "", now);
+        if (input.Action == "stop" && starts.TryGetValue(id, out var start) && elapsed.TryAdd(id, (now - start).TotalMilliseconds))
+            Record(id, "elapsedMs", elapsed[id].ToString(System.Globalization.CultureInfo.InvariantCulture), now);
         if (elapsed.Count == Players.Count) Finish(now);
     }
     public override object PublicState(DateTimeOffset now) => new { target, answered = elapsed.Count, endsAt = EndsAt };

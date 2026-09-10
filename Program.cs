@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Threading.RateLimiting;
 using Gnist.Games;
+using Gnist.Data;
 using Gnist.Hubs;
 using Gnist.Models;
 using Gnist.Services;
@@ -32,6 +33,9 @@ builder.Services.AddSingleton<RoomService>();
 builder.Services.AddSingleton<GameCatalog>();
 builder.Services.AddSingleton<GameManager>();
 builder.Services.AddSingleton<RoomBroadcaster>();
+builder.Services.AddSingleton<IPartyStore>(services => DatabaseSetup.Create(services.GetRequiredService<IConfiguration>(), services.GetRequiredService<IHostEnvironment>()));
+builder.Services.AddSingleton<RoomPersistence>();
+builder.Services.AddHostedService(services => services.GetRequiredService<RoomPersistence>());
 builder.Services.AddHostedService<RoomTicker>();
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR(o => { o.MaximumReceiveMessageSize = 4096; o.AddFilter<FriendlyErrors>(); });
@@ -71,11 +75,12 @@ app.UseRateLimiter();
 app.MapRazorPages();
 app.MapHub<PartyHub>("/party");
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-app.MapPost("/api/rooms", (HttpContext context, RoomService rooms) =>
+app.MapPost("/api/rooms", async (HttpContext context, RoomService rooms, RoomPersistence persistence) =>
 {
     // Only the configured frontend can read cross-origin responses. Tokens are never put in URLs.
     if (!context.Request.Headers.ContainsKey("X-Gnist-Request")) return Results.BadRequest();
-    try { context.Response.Headers.CacheControl = "no-store"; return Results.Ok(rooms.Create()); }
+    try { context.Response.Headers.CacheControl = "no-store"; var receipt = rooms.Create();
+        await persistence.SaveAsync(rooms.Get(receipt.Code)); return Results.Ok(receipt); }
     catch (PartyException e) { return Results.BadRequest(new { error = e.Message }); }
 }).RequireRateLimiting("create");
 app.MapGet("/api/rooms/{code}/qr", (string code, HttpContext context, RoomService rooms, FrontendLinks links) =>
@@ -87,5 +92,6 @@ app.MapGet("/api/rooms/{code}/qr", (string code, HttpContext context, RoomServic
     using var svg = new SvgQRCode(data);
     return Results.Text(svg.GetGraphic(8), "image/svg+xml");
 });
+await app.Services.GetRequiredService<RoomPersistence>().RecoverAsync();
 app.Run();
 public partial class Program;

@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: gnist
+      POSTGRES_USER: gnist
+      POSTGRES_PASSWORD: gnist-local-only
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - gnist-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gnist -d gnist"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  gnist-postgres:

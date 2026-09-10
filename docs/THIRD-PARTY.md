@@ -5,3 +5,10 @@
 - Testpakker: xUnit, Microsoft.NET.Test.Sdk, Microsoft.AspNetCore.Mvc.Testing og Microsoft.AspNetCore.SignalR.Client. Kun til udvikling/test; deres licenser følger pakkerne.
 
 Ingen CDN-kald, analyseværktøjer eller eksterne skrifttyper er nødvendige under spil.
+
+## Database
+
+- Entity Framework Core og SQLite-provider: Microsoft, MIT. https://github.com/dotnet/efcore
+- Npgsql og EF Core PostgreSQL-provider: PostgreSQL License. https://github.com/npgsql/efcore.pg
+- SQLitePCLRaw: Apache-2.0. https://github.com/ericsink/SQLitePCL.raw
+- SQLite: public domain. https://www.sqlite.org/copyright.html

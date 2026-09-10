@@ -16,6 +16,7 @@ public sealed class CookieClicker(IReadOnlyList<string> players, DateTimeOffset 
         if (lastTap.TryGetValue(id, out var last) && now - last < TimeSpan.FromMilliseconds(40)) return;
         lastTap[id] = now;
         counts[id]++;
+        Record(id, "clicks", counts[id].ToString(System.Globalization.CultureInfo.InvariantCulture), now);
     }
     public override object PublicState(DateTimeOffset now) => new { endsAt = EndsAt, counts = new Dictionary<string, int>(counts) };
     public object PlayerRoomState() => new { endsAt = EndsAt };

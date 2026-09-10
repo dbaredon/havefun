@@ -11,6 +11,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -19,6 +22,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Ensure Pages uses the UI workflow, not the README publisher
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.repos.getPages({ owner: context.repo.owner, repo: context.repo.repo });
+            if (data.build_type !== 'workflow') {
+              core.setFailed('Settings → Pages → Source skal være GitHub Actions. Den gamle branch/Jekyll-udgivelse viser README og kan overskrive UI. Skift indstillingen og kør workflowet igen.');
+            }
       - uses: actions/configure-pages@v5
         id: pages
       - name: Test frontend navigation

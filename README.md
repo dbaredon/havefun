@@ -2,7 +2,7 @@
 
 Små spil. Store øjeblikke. En dansk multiplayer-festplatform, hvor TV'et er fællesskærmen, og telefonerne er controllere.
 
-**ASP.NET Core / .NET 10 · Razor Pages · SignalR · C# · vanilla JavaScript · in-memory**
+**ASP.NET Core / .NET 10 · Razor Pages · SignalR · C# · vanilla JavaScript · PostgreSQL / SQLite**
 
 Den oprindelige produktbeskrivelse ligger uændret i [docs/BRIEF.md](docs/BRIEF.md).
 
@@ -23,7 +23,7 @@ Forsiden vises også uden en spilserver. I så fald vises beskeden »Spillet er 
 
 Pages viser UI'et; .NET-serveren håndterer rum, QR-koder og live-input:
 
-1. Log ind på [Render](https://dashboard.render.com) med GitHub. Vælg **New → Blueprint**, og forbind repositoryet. Den medfølgende `render.yaml` opretter en .NET-container på Free-planen. Docker skal ikke installeres lokalt.
+1. Log ind på [Render](https://dashboard.render.com) med GitHub. Vælg **New → Blueprint**, og forbind repositoryet. Den medfølgende `render.yaml` opretter en .NET-container på Free-planen og en **betalt PostgreSQL-database** (`0.1c-256mb`). Gennemgå prisen i Render før oprettelse. Har du allerede et Blueprint, synkronisér det efter push; databasen forbindes automatisk via `DATABASE_URL`. Docker skal ikke installeres lokalt.
 2. Når serveren viser **Live**, kopiér dens HTTPS-adresse, fx `https://gnist-xxxx.onrender.com`. Kontroller, at `/health` svarer med `{"status":"ok"}`.
 3. På GitHub: **Settings → Secrets and variables → Actions → Variables → New repository variable**. Navn: **`GNIST_API_URL`**. Værdi: serveradressen uden ekstra sti. Det er en offentlig adresse, ikke en secret.
 4. Kør **Publish UI to GitHub Pages** igen. Ændring af en repository-variable starter ikke selv et workflow.
@@ -31,7 +31,7 @@ Pages viser UI'et; .NET-serveren håndterer rum, QR-koder og live-input:
 
 `render.yaml` indstiller `Party__FrontendBaseUrl=https://dbaredon.github.io/havefun`. Har du allerede oprettet serveren manuelt, skal denne miljøvariabel tilføjes i Render under **Environment**. Den åbner CORS/WebSocket-adgang for præcis `https://dbaredon.github.io` og bestemmer QR-kodernes frontend-adresse. Backend og UI skal begge opdateres til denne version. Værtstokens sendes kun til den konfigurerede spilserver og gemmes pr. server og fane.
 
-Free-planen er til afprøvning: Render kan gå i dvale efter 15 minutter uden indgående trafik, og opstart kan tage cirka et minut. Rum forsvinder ved genstart eller deployment. Til en rigtig fest bør du vælge en betalt instans og fortsat beholde **én instans**, fordi rum gemmes i hukommelsen.
+Free-planen er til afprøvning: Render kan gå i dvale efter 15 minutter uden indgående trafik, og opstart kan tage cirka et minut. Navne, point og gemte svar overlever genstart. En igangværende runde afbrydes, og rummet åbner i lobbyen. Til en rigtig fest bør du vælge en betalt webinstans og fortsat beholde **én instans**, fordi det aktive spil koordineres i serverens hukommelse.
 
 ### Lokal kontrol af Pages-buildet
 
@@ -55,7 +55,7 @@ dotnet restore
 dotnet run
 ```
 
-**Åbn http://localhost:5180**. Adressen står også i terminalen. Ingen database, npm eller API-nøgler er nødvendige. Første restore henter NuGet-pakker; browserens SignalR-klient ligger allerede i projektet.
+**Åbn http://localhost:5180**. Adressen står også i terminalen. En lokal SQLite-database oprettes automatisk i `.local-data/gnist.db`; ingen separat databaseserver, npm eller API-nøgler er nødvendige. Første restore henter NuGet-pakker; browserens SignalR-klient ligger allerede i projektet.
 
 1. Tryk **Start en fest** på computeren.
 2. Åbn en separat fane på `/join`, og indtast rumkoden og et navn. Gentag i flere faner for at simulere telefoner.
@@ -101,6 +101,7 @@ Models/                  Rum, spillere, indstillinger, input og resultater
 Services/RoomService.cs   Rum, unikke koder, tokens, forbindelser og udløb
 Services/GameManager.cs   Rundeskift, resultater, point og quick play
 Services/RoomBroadcaster.cs  Offentlige, værts- og private snapshots + timer
+Data/                    EF Core, migrationer, PostgreSQL/SQLite og gendannelse
 Games/                   IMiniGame, fælles livscyklus og syv implementeringer
 wwwroot/css/             Responsivt design og bevægelse
 wwwroot/js/              SignalR-klient, TV-visninger, telefoncontrollere og navigation
@@ -134,7 +135,34 @@ Livscyklus: **Waiting (lobby) → Intro → Countdown → Playing → Finished �
 4. Tilføj dansk titel, TV-visning og telefonkontrol i `wwwroot/js/app.js`.
 5. Tilføj tests af regler, dubletter, tidsgrænser og eventuelle hemmeligheder.
 
-Der er bevidst ingen database eller generisk repository-ramme. Ved senere persistens kan rumlagring udskilles fra `RoomService` og afsluttede resultater gemmes, når `GameManager` tildeler point. Spilklasserne behøver ikke kende databasen.
+## Lagring og gendannelse
+
+**PostgreSQL i produktion; SQLite lokalt.** EF Core opretter/opdaterer skemaet via versionerede migrationer ved serverstart. Produktion kræver `DATABASE_URL` (Render-format) eller `ConnectionStrings__PartyDatabase` (Npgsql-format). Forbindelsen sættes kun på .NET-serveren, aldrig i GitHub Pages eller `config.js`.
+
+| Tabel | Gemmer |
+| --- | --- |
+| Rooms | Rumkode, indstillinger, aktivitet og hash af værtstoken |
+| Players | Stabilt spiller-ID, navn, point, strafpoint og hash af spillertoken |
+| Rounds | Spiltype, rundenummer, status og gemt spiltilstand |
+| Submissions | Servergodkendte svar, valg, klikantal og tidspunkter |
+| Results | Placeringer, resultatdetaljer og konsekvenser |
+
+Oprettelse, join, værtshandlinger og svar afventer en databaseskrivning. Klik samles i et checkpoint cirka hvert sekund; et pludseligt nedbrud kan derfor miste input siden sidste checkpoint. Timerafsluttede runder gemmes også ved checkpoint. Databaseudfald kan forlænge dette interval. Point og afsluttede resultater gemmes i samme transaktion, og ældre snapshots kan ikke overskrive nyere data.
+
+Ved genstart gendannes ikke-udløbne rum med navne, point og historik. En igangværende runde markeres afbrudt, automatik stoppes, og værten starter næste runde fra lobbyen. Værtssiden viser de seneste 30 gemte runder. Genindlæsning af den samme browserfane bevarer identiteten via dens token; der er ingen konto til at gendanne en mistet session. Tokens gemmes kun som SHA-256-hashes i databasen.
+
+Inaktive rum udløber efter den konfigurerede grænse og kan ikke genåbnes; deres historik beholdes i databasen. Der er endnu ingen automatisk slettefrist eller eksportvisning for gamle fester. PostgreSQL-data ligger uafhængigt af webserverens deploys. Backup og gendannelse af selve databasen håndteres hos databaseudbyderen.
+
+### Valgfri PostgreSQL lokalt
+
+SQLite virker straks med `dotnet run`. Hvis Docker er installeret, kan samme PostgreSQL-provider som i produktion afprøves:
+
+```sh
+docker compose up -d
+ConnectionStrings__PartyDatabase='Host=localhost;Port=5432;Database=gnist;Username=gnist;Password=gnist-local-only' dotnet run
+```
+
+Den medfølgende adgangskode er kun til den lokale udviklingsdatabase. Test og Pages-eksport bruger isoleret hukommelseslagring. Lagringstestene bruger midlertidige databaser; CI tester desuden mod PostgreSQL 17.
 
 ## Konfiguration
 
@@ -149,7 +177,7 @@ Indstillinger findes i `appsettings.json` og kan overskrives med miljøvariabler
 | GitHub Pages-frontend / tilladt origin | Tom (lokal drift) | `Party__FrontendBaseUrl` |
 | Offentlig URL til QR-koder | Aktuel request-origin | `Party__PublicBaseUrl` |
 
-Indstil `Party__PublicBaseUrl` til den fulde HTTPS-adresse i produktion. Indstil også `AllowedHosts` til det/de rigtige hostnavne. Værten kan vælge spilvarighed og konsekvenser i lobbyen. Aktive spil og resultater forsvinder ved genstart/deployment.
+Indstil `Party__PublicBaseUrl` til den fulde HTTPS-adresse i produktion. Indstil også `AllowedHosts` til det/de rigtige hostnavne. Værten kan vælge spilvarighed og konsekvenser i lobbyen. Gemte data gendannes efter genstart/deployment; den igangværende runde afbrydes.
 
 ## Test
 
@@ -172,12 +200,12 @@ Til manuel browserkontrol: åbn en vært og to spillere, spil alle syv spil, gen
 Der er to workflows: `.github/workflows/ci.yml` bygger/tester push og pull requests, og `azure.yml` bygger/tester/publicerer til Azure ved push til `main`, når Azure er konfigureret. Ingen cloudressourcer er oprettet af projektet.
 
 1. Opret en Azure App Service med **.NET 10**, én instans og et passende App Service-abonnement. Aktivér HTTPS Only, WebSockets og Always On, hvor planen understøtter det. På Linux kan startup command være `dotnet Gnist.dll`.
-2. Konfigurér `ASPNETCORE_ENVIRONMENT=Production`, `Party__PublicBaseUrl=https://DIT-NAVN.azurewebsites.net` og `AllowedHosts=DIT-NAVN.azurewebsites.net` i App Service. Tilpas ved eget domæne.
+2. Konfigurér `ASPNETCORE_ENVIRONMENT=Production`, `Party__PublicBaseUrl=https://DIT-NAVN.azurewebsites.net` og `AllowedHosts=DIT-NAVN.azurewebsites.net` i App Service. Tilpas ved eget domæne. Opret desuden PostgreSQL, og sæt forbindelsen som `ConnectionStrings__PartyDatabase` i App Service.
 3. Opret Azure-login med OpenID Connect/federated credentials, afgrænset til GitHub-repositoryets `production`-environment. Giv identiteten den nødvendige adgang til den konkrete App Service.
 4. Opret GitHub-environment `production`. Sæt repository-variable `AZURE_WEBAPP_NAME`. Sæt secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` og `AZURE_SUBSCRIPTION_ID` på repositoryet eller environmentet. Brug eventuelt environment-beskyttelse før deployment.
 5. Push projektet til dit GitHub-repository på `main`. Workflowet kører test før `dotnet publish` og `azure/webapps-deploy`. Tjek derefter `/health`, opret et rum, og scan koden fra en telefon over mobilnettet.
 
-**Hold MVP'en på én instans.** In-memory-rum deles ikke mellem processer. ARR affinity alene løser ikke, at forskellige spillere kan lande på forskellige servere. Før skalering skal rumtilstand og spilkoordinering deles, og SignalR skal have en passende backplane eller Azure SignalR Service. En deployment afbryder aktive fester.
+**Hold MVP'en på én instans.** In-memory-rum deles ikke mellem processer. ARR affinity alene løser ikke, at forskellige spillere kan lande på forskellige servere. Før skalering skal rumtilstand og spilkoordinering deles, og SignalR skal have en passende backplane eller Azure SignalR Service. En deployment afbryder den aktuelle runde; gemte point og historik gendannes.
 
 Manuel publicering til en mappe:
 
@@ -189,7 +217,7 @@ Faglig reference: [Microsofts SignalR JavaScript-klient](https://learn.microsoft
 
 ## MVP-begrænsninger
 
-- Ingen varig lagring; rum er bevidst midlertidige. Lukker man en fane helt, kan dens session-token gå tabt.
+- Ingen brugerkonti. Lukker man en fane helt, kan dens session-token gå tabt, selvom data stadig ligger i databasen.
 - Timing og reaktion måles ved ankomst til serveren. Netværksforsinkelse påvirker derfor resultatet; spil på et stabilt netværk. Der er ingen browserberegnet eller klientrapporteret slutscore.
 - Klikbegrænsning stopper åbenlyst umulige hastigheder, men er ikke avanceret bot-detektion.
 - 100 spillere er konfigurationsmålet; der er ikke udført en fuld 100-telefoners belastningstest eller fysisk mobiltest.

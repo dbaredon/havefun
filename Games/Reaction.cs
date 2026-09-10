@@ -14,7 +14,8 @@ public sealed class Reaction : MiniGame
     protected override void Input(string id, PlayerInput input, DateTimeOffset now)
     {
         if (input.Action != "react") return;
-        responses.TryAdd(id, now < goAt ? -1 : (now - goAt).TotalMilliseconds);
+        if (responses.TryAdd(id, now < goAt ? -1 : (now - goAt).TotalMilliseconds))
+            Record(id, "reactionMs", responses[id].ToString(System.Globalization.CultureInfo.InvariantCulture), now);
         if (responses.Count == Players.Count) Finish(now);
     }
     // The randomized GO time must never be sent in advance.

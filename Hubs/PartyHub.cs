@@ -1,16 +1,18 @@
 using Gnist.Models;
+using Gnist.Data;
 using Gnist.Services;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Gnist.Hubs;
 
-public sealed class PartyHub(RoomService rooms, GameManager games, RoomBroadcaster broadcaster) : Hub
+public sealed class PartyHub(RoomService rooms, GameManager games, RoomBroadcaster broadcaster, RoomPersistence persistence) : Hub
 {
     public async Task<object> Host(string code, string token)
     {
         rooms.ConnectHost(code, token, Context.ConnectionId);
         await Groups.AddToGroupAsync(Context.ConnectionId, code.ToUpperInvariant());
         await Groups.AddToGroupAsync(Context.ConnectionId, $"host:{code.ToUpperInvariant()}");
+        await persistence.SaveAsync(rooms.Get(code));
         await broadcaster.Publish(rooms.Get(code));
         return new { code };
     }
@@ -18,6 +20,7 @@ public sealed class PartyHub(RoomService rooms, GameManager games, RoomBroadcast
     {
         var receipt = rooms.Join(code, name, token, Context.ConnectionId);
         await Groups.AddToGroupAsync(Context.ConnectionId, receipt.Code);
+        await persistence.SaveAsync(rooms.Get(receipt.Code));
         await broadcaster.Publish(rooms.Get(receipt.Code));
         return receipt;
     }
@@ -25,25 +28,28 @@ public sealed class PartyHub(RoomService rooms, GameManager games, RoomBroadcast
     {
         var (room, _) = rooms.Membership(Context.ConnectionId, true);
         games.Start(room, kind, quickPlay, settings);
+        await persistence.SaveAsync(room);
         await broadcaster.Publish(room);
     }
-    public Task Act(PlayerInput input)
+    public async Task Act(PlayerInput input)
     {
         var (room, id) = rooms.Membership(Context.ConnectionId);
         if (id is null) throw new PartyException("Værten deltager via en separat telefon eller fane.");
         games.Input(room, id, input);
-        return Task.CompletedTask;
+        if (input.Action != "tap") await persistence.SaveAsync(room);
     }
     public async Task Lobby()
     {
         var (room, _) = rooms.Membership(Context.ConnectionId, true);
         games.Lobby(room);
+        await persistence.SaveAsync(room);
         await broadcaster.Publish(room);
     }
     public async Task Pause()
     {
         var (room, _) = rooms.Membership(Context.ConnectionId, true);
         games.Pause(room);
+        await persistence.SaveAsync(room);
         await broadcaster.Publish(room);
     }
     public async Task Leave()
@@ -52,6 +58,7 @@ public sealed class PartyHub(RoomService rooms, GameManager games, RoomBroadcast
         if (room is null) return;
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, room.Code);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"host:{room.Code}");
+        await persistence.SaveAsync(room);
         await broadcaster.Publish(room);
     }
     public override async Task OnDisconnectedAsync(Exception? exception)

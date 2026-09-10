@@ -1,4 +1,5 @@
 using Gnist.Games;
+using Gnist.Data;
 using Gnist.Models;
 
 namespace Gnist.Services;
@@ -19,6 +20,7 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
             if (players.Length == 0) throw new PartyException("Vent på mindst én spiller.");
             kind = quick ? catalog.RandomNext(room.PreviousGame, players.Length) : kind;
             var game = catalog.Create(kind ?? "", players, now, settings);
+            room.Recovered = false;
             room.Settings = settings;
             room.QuickPlay = quick;
             room.Game = game;
@@ -38,6 +40,7 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
             if (room.Game is HotPotato && input.Action == "pass" &&
                 (!room.Players.TryGetValue(input.Value ?? "", out var target) || !target.Connected)) return;
             room.Game?.HandleInput(playerId, input, now);
+            if (room.Game?.FinishedAt is not null) Tick(room);
             room.LastActivity = now;
         }
     }
@@ -47,6 +50,8 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
         {
             room.QuickPlay = false;
             room.NextRoundAt = null;
+            if (room.Game is { } game && !room.ArchivedRounds.ContainsKey(game.Id))
+                room.ArchivedRounds[game.Id] = Snapshots.CaptureRound(room, "Cancelled");
             room.Game = null;
             room.LastActivity = clock.GetUtcNow();
         }
@@ -73,6 +78,7 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
                     if (game.Kind is not ("wheel" or "bomb") && result.Valid) player.Score += Math.Max(0, 4 - result.Rank);
                     if (result.Bottom && room.Settings.Consequence == "points") player.Penalties += room.Settings.PenaltyPoints;
                 }
+                room.ArchivedRounds[game.Id] = Snapshots.CaptureRound(room, "Completed", Results(room));
                 room.LastActivity = now;
             }
             if (game.Phase(now) == "Results" && room.QuickPlay && room.HostConnections.Count > 0 && room.Players.Values.Any(p => p.Connected))
@@ -112,7 +118,12 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
         {
             code = room.Code, serverNow = now, hostConnected = room.HostConnections.Count > 0, round = room.Round,
             quickPlay = room.QuickPlay, nextRoundAt = room.NextRoundAt, settings = room.Settings,
-            players = room.Players.Values.Select(p => new { p.Id, p.Name, p.Connected, p.Score, p.Penalties }).ToArray(),
+            recovered = room.Recovered,
+            history = forHost ? room.ArchivedRounds.Values.OrderByDescending(r => r.Round.Number).Take(30).Select(r => new {
+                r.Round.Number, r.Round.Kind, r.Round.Status,
+                results = r.Results.OrderBy(x => x.Rank).Select(x => new { name = room.Players[x.PlayerId].Name, x.Rank, x.Detail }).ToArray()
+            }).ToArray() : null,
+            players = room.Players.Values.Where(p => !p.Left).Select(p => new { p.Id, p.Name, p.Connected, p.Score, p.Penalties }).ToArray(),
             game = game is null ? null : new { game.Id, game.Kind, phase = game.Phase(now), game.StartsAt,
                 participants = game.Players, state = !forHost && game is CookieClicker clicker ? clicker.PlayerRoomState() : game.PublicState(now), results = Results(room) }
         };

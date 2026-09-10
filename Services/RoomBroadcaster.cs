@@ -1,4 +1,5 @@
 using Gnist.Hubs;
+using Gnist.Data;
 using Gnist.Models;
 using Microsoft.AspNetCore.SignalR;
 
@@ -26,12 +27,14 @@ public sealed class RoomBroadcaster(IHubContext<PartyHub> hub, GameManager games
     public Task Closed(Room room) => hub.Clients.Group(room.Code).SendAsync("Closed", "Rummet er udløbet. Start en ny fest.");
 }
 
-public sealed class RoomTicker(RoomService rooms, GameManager games, RoomBroadcaster broadcaster, TimeProvider clock, ILogger<RoomTicker> logger) : BackgroundService
+public sealed class RoomTicker(RoomService rooms, GameManager games, RoomBroadcaster broadcaster, TimeProvider clock, ILogger<RoomTicker> logger, RoomPersistence persistence) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50), clock);
         var tick = 0;
+        try
+        {
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             tick++;
@@ -39,12 +42,14 @@ public sealed class RoomTicker(RoomService rooms, GameManager games, RoomBroadca
             {
                 try
                 {
-                    if (tick % 100 == 0 && rooms.Expire(room, clock.GetUtcNow())) { await broadcaster.Closed(room); continue; }
+                    if (tick % 100 == 0 && rooms.Expire(room, clock.GetUtcNow())) { await persistence.SaveAsync(room, stoppingToken); await broadcaster.Closed(room); continue; }
                     games.Tick(room);
                     if (tick % 5 == 0 || room.Game is { Kind: "reaction", FinishedAt: null }) await broadcaster.Publish(room);
                 }
                 catch (Exception e) { logger.LogError(e, "Room tick failed for {Code}", room.Code); }
             }
         }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
     }
 }
