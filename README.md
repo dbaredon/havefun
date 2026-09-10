@@ -14,7 +14,7 @@ Efter hver runde vises resultatet med den bedste og dårligste placering. De to 
 | **Hovedbrud** | Løs regnestykket hurtigere end de andre. Korrekte svar rangeres efter svartid. |
 | **Duellen** | To spillere mødes i sten, saks, papir. Uafgjort giver en ny omgang. |
 | **Skæbnehjulet** | Hjulet vælger tilfældigt en spiller. Alle følger med på den store skærm. |
-| **Tikkende bombe** | Send bomben videre, før den tilfældige lunte på 1–3 minutter udløber. En modtager skal vente 3 sekunder, før bomben kan sendes videre. |
+| **Tikkende bombe** | Send bomben videre, før den tilfældige lunte på 30–90 sekunder udløber. En modtager skal vente 3 sekunder, før bomben kan sendes videre. |
 
 ## Point
 

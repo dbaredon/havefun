@@ -17,7 +17,7 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
                 throw new PartyException("Klikamok skal vare mellem 10 og 60 sekunder.");
             var players = room.Players.Values.Where(p => p.Connected).Select(p => p.Id).ToArray();
             if (players.Length == 0) throw new PartyException("Vent på mindst én spiller.");
-            kind = quick ? catalog.RandomNext(room.PreviousGame, players.Length) : kind;
+            kind = quick ? catalog.RandomNext(room.PreviousGame, players.Length, room.ArchivedRounds.Values.Select(r => r.Round.Kind)) : kind;
             var game = catalog.Create(kind ?? "", players, now, settings);
             room.Recovered = false;
             room.Settings = settings;

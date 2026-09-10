@@ -22,7 +22,7 @@ public sealed class GameCatalog
         "math" => new QuickMath(players, now, MathProblem.Generate()),
         "duel" when players.Count >= 2 => new Duel(players, now, PickDuelists(players)),
         "wheel" => new SpinWheel(players, now, RandomNumberGenerator.GetInt32(players.Count)),
-        "bomb" when players.Count >= 2 => new HotPotato(players, now, RandomNumberGenerator.GetInt32(players.Count), RandomNumberGenerator.GetInt32(60, 181)),
+        "bomb" when players.Count >= 2 => new HotPotato(players, now, RandomNumberGenerator.GetInt32(players.Count), RandomNumberGenerator.GetInt32(30, 91)),
         _ => throw new PartyException("Vælg et spil, og sørg for, at mindst to spillere er med.")
     };
     private static string[] PickDuelists(IReadOnlyList<string> players)
@@ -34,6 +34,16 @@ public sealed class GameCatalog
     public string RandomNext(string? previous, int playerCount)
     {
         var choices = All.Where(g => g.Id != previous && (playerCount >= 2 || g.Id is not ("duel" or "bomb"))).ToArray();
+        return choices[RandomNumberGenerator.GetInt32(choices.Length)].Id;
+    }
+
+    public string RandomNext(string? previous, int playerCount, IEnumerable<string> played)
+    {
+        var eligible = All.Where(g => playerCount >= 2 || g.Id is not ("duel" or "bomb")).ToArray();
+        var used = played.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var choices = eligible.Where(g => !used.Contains(g.Id) && g.Id != previous).ToArray();
+        if (choices.Length == 0) choices = eligible.Where(g => !used.Contains(g.Id)).ToArray();
+        if (choices.Length == 0) choices = eligible.Where(g => g.Id != previous).ToArray();
         return choices[RandomNumberGenerator.GetInt32(choices.Length)].Id;
     }
 }
