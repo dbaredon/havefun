@@ -28,6 +28,7 @@ public sealed class QuickMath : MiniGame
         Record(id, $"answer:{question + 1}", input.Value!, now); if (answered.Count == Players.Count) Advance(now);
     }
     private void Advance(DateTimeOffset now) { answered.Clear(); if (++question >= problems.Length) Finish(now); else questionStartedAt = now; }
+    public void Skip(DateTimeOffset now) => Advance(now);
     public override object PublicState(DateTimeOffset now) => new { expression = now >= StartsAt ? problems[Math.Min(question, problems.Length - 1)].Expression : null, answer = FinishedAt is not null ? (int?)problems[^1].Answer : null, question = Math.Min(question + 1, problems.Length), totalQuestions = problems.Length, answered = answered.Count, endsAt = EndsAt, questionEndsAt = questionStartedAt.AddSeconds(30) };
     public override object PrivateState(string playerId) => new { submitted = answered.Contains(playerId) };
     public override IReadOnlyList<GameResult> GetResults() => Players.Select(id => new GameResult(id, -scores.GetValueOrDefault(id) * 100000 + times.GetValueOrDefault(id), $"{scores.GetValueOrDefault(id)}/{problems.Length} rigtige", scores.GetValueOrDefault(id) > 0)).OrderByDescending(r => r.Valid).ThenBy(r => r.Value).ToList();

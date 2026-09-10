@@ -129,6 +129,14 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
             room.LastActivity = clock.GetUtcNow();
         }
     }
+    public void SkipMath(Room room)
+    {
+        lock (room.Gate)
+        {
+            if (room.Game is not QuickMath math || math.Phase(clock.GetUtcNow()) != "Playing") throw new PartyException("Der kan kun springes over under Hovedbrud.");
+            math.Skip(clock.GetUtcNow()); room.LastActivity = clock.GetUtcNow();
+        }
+    }
     public IReadOnlyList<RankedResult> Results(Room room)
     {
         if (room.Game is not { FinishedAt: not null } game) return [];

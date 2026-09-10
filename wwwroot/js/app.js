@@ -217,7 +217,7 @@
         case 'cookie': html = heading(game,'Hvem har de hurtigste fingre?')+'<div id="live-leaderboard" class="leaderboard"></div>'; break;
         case 'timing': html = heading(game,'Ingen ure. Bare mavefornemmelse.')+`<div class="expression">${Number(state.target).toLocaleString('da-DK', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <small>s</small></div><p class="muted" style="text-align:center" id="answered"></p>`; break;
         case 'reaction': html = heading(game)+`<div class="signal-word ${state.go?'go':''}">${state.go?'NU!':'VENT …'}</div><p class="muted" style="text-align:center" id="answered"></p>`; break;
-        case 'math': html = heading(game)+`<div class="eyebrow" style="text-align:center">${state.question}/${state.totalQuestions}</div><div class="expression">${escape(state.expression)} = ?</div><p class="muted" style="text-align:center" id="answered"></p>`; break;
+        case 'math': html = heading(game)+`<div class="eyebrow" style="text-align:center">${state.question}/${state.totalQuestions}</div><div class="expression">${escape(state.expression)} = ?</div><p class="muted" style="text-align:center" id="answered"></p><button class="text-button" id="skip-math">Skip opgave · alle får 0 point</button>`; break;
         case 'pattern': html = heading(game,'Hvad skal stå på spørgsmålstegnets plads?')+`<div class="pattern-sequence">${state.sequence?.map(n=>n===null?'?':n).join(' · ') || '…'}</div><p class="muted" style="text-align:center" id="answered"></p>`; break;
         case 'catch': html = heading(game,'Følg med på telefonerne')+`<p class="muted" style="text-align:center">${Object.values(state.hits).reduce((a,b)=>a+b,0)} træffere i alt</p>`; break;
         case 'grid': html = heading(game,'Tryk 1–9 i rækkefølge')+`<p class="muted" style="text-align:center">${Object.values(state.progress).reduce((a,b)=>a+b,0)} tryk i alt</p>`; break;
@@ -313,6 +313,7 @@
     document.querySelectorAll('[data-pass]').forEach(button=>button.addEventListener('click',()=>{act('pass',button.dataset.pass);buzz(25);}));
     document.querySelector('[data-catch]')?.addEventListener('click', event=>{ event.currentTarget.disabled=true; act('hit'); buzz(15); });
     document.querySelectorAll('[data-grid]').forEach(button=>button.addEventListener('click',async event=>{ const correct=Number(button.dataset.grid)===(mine.next||1); button.classList.add(correct?'correct':'wrong'); await act('grid',button.dataset.grid); buzz(correct?10:[30,40,30]); }));
+    $('skip-math')?.addEventListener('click', () => invoke('SkipMath'));
   }
   function updateClocks() {
     document.querySelectorAll('[data-countdown]').forEach(el=>{
