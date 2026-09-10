@@ -6,7 +6,7 @@ namespace Gnist.Games;
 public sealed class GameCatalog
 {
     public static readonly GameInfo[] All = [
-        new("cookie", "Klikamok", "10–60 sekunder. Én knap. Giv den alt, du har.", "◉", "HURTIGE FINGRE"),
+        new("cookie", "Klikamok", "10–45 sekunder. Én knap. Giv den alt, du har.", "◉", "HURTIGE FINGRE"),
         new("timing", "På sekundet", "Find dit indre ur. Stop så tæt på målet som muligt.", "◷", "MAVEFORNEMMELSE"),
         new("reaction", "Lynhurtig", "Vent på NU. Tryk før de andre. Ingen tyvstart.", "ϟ", "REFLEKSER"),
         new("math", "Hovedbrud", "En lille udregning. Et stort tidspres.", "+", "HURTIGE HOVEDER"),
@@ -16,7 +16,7 @@ public sealed class GameCatalog
     ];
     public MiniGame Create(string kind, IReadOnlyList<string> players, DateTimeOffset now, RoomSettings settings) => kind switch
     {
-        "cookie" => new CookieClicker(players, now, settings.ClickSeconds),
+        "cookie" => new CookieClicker(players, now, RandomNumberGenerator.GetInt32(10, 46)),
         "timing" => new PerfectTiming(players, now, RandomNumberGenerator.GetInt32(100, 6001) / 100.0),
         "reaction" => new Reaction(players, now, RandomNumberGenerator.GetInt32(1800, 5001)),
         "math" => new QuickMath(players, now, MathProblem.Generate()),

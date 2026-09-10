@@ -26,7 +26,7 @@ public class MultiplayerTests
 
     private static async Task<JsonElement> Until(ChannelReader<JsonElement> reader, Func<JsonElement,bool> predicate)
     {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(55));
         await foreach (var item in reader.ReadAllAsync(timeout.Token)) if (predicate(item)) return item;
         throw new InvalidOperationException("Ingen tilstand modtaget");
     }
