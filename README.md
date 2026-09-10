@@ -13,6 +13,7 @@ Efter hver runde vises resultatet med den bedste og dårligste placering. De to 
 | **Lynhurtig** | Vent på signalet **NU!** og tryk så hurtigt som muligt. For tidlige tryk tæller som tyvstart. |
 | **Hovedbrud** | Løs regnestykket hurtigere end de andre. Korrekte svar rangeres efter svartid. |
 | **Tal mønster** | Find det manglende tal i en tilfældig række med fem tal. Spørgsmålstegnet kan stå hvor som helst. |
+| **Fang den** | Fang en cirkel, der flytter sig på telefonen, 10 gange. Den samlede tid afgør placeringen. |
 | **Duellen** | To spillere mødes i sten, saks, papir. Uafgjort giver en ny omgang. |
 | **Skæbnehjulet** | Hjulet vælger tilfældigt en spiller. Alle følger med på den store skærm. |
 | **Tikkende bombe** | Send bomben videre, før den tilfældige lunte på 30–90 sekunder udløber. En modtager skal vente 3 sekunder, før bomben kan sendes videre. |

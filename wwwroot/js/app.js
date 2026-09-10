@@ -15,6 +15,7 @@
     reaction: ['Lynhurtig', 'Vent på NU. Trykker du for tidligt, er det en tyvstart.', 'ϟ', 'REFLEKSER'],
     math: ['Hovedbrud', 'Regn den ud. Før alle andre.', '+', 'HURTIGE HOVEDER'],
     pattern: ['Tal mønster', 'Find det manglende tal i rækken.', '#', 'LOGIK'],
+    catch: ['Fang den', 'Ram cirklen 10 gange. Samlet tid afgør.', '●', 'HURTIGE FINGRE'],
     duel: ['Duellen', 'Sten slår saks. Saks slår papir. Papir slår sten.', '⚔', 'ÉN MOD ÉN'],
     wheel: ['Skæbnehjulet', 'Læn jer tilbage. Lad skæbnen tage over.', '✳', 'REN TILFÆLDIGHED'],
     bomb: ['Tikkende bombe', 'Send den videre. Ingen ved, hvornår den springer.', '✹', 'VARME HÆNDER']
@@ -216,6 +217,7 @@
         case 'reaction': html = heading(game)+`<div class="signal-word ${state.go?'go':''}">${state.go?'NU!':'VENT …'}</div><p class="muted" style="text-align:center" id="answered"></p>`; break;
         case 'math': html = heading(game)+`<div class="eyebrow" style="text-align:center">${state.question}/${state.totalQuestions}</div><div class="expression">${escape(state.expression)} = ?</div><p class="muted" style="text-align:center" id="answered"></p>`; break;
         case 'pattern': html = heading(game,'Hvad skal stå på spørgsmålstegnets plads?')+`<div class="pattern-sequence">${state.sequence?.map(n=>n===null?'?':n).join(' · ') || '…'}</div><p class="muted" style="text-align:center" id="answered"></p>`; break;
+        case 'catch': html = heading(game,'Følg med på telefonerne')+`<p class="muted" style="text-align:center">${Object.values(state.hits).reduce((a,b)=>a+b,0)} træffere i alt</p>`; break;
         case 'duel': html = heading(game,state.tie?'Uafgjort! Vi tager den igen …':'Kun de to udvalgte kan se deres valg.')+`<div class="duel-stage">${state.selected.map((id,i)=>`${i?'<div class="versus">VS</div>':''}<div class="duelist"><h2>${escape(nameOf(id))}</h2><span class="duel-choice">${choiceSymbol(state.choices?.[id])}</span></div>`).join('')}</div>`; break;
         case 'wheel': html = heading(game,'Hvem peger pilen på?')+wheelHtml(state); break;
         case 'bomb': html = heading(game,'Ingen kender tiden. Send den videre!')+`<div class="bomb-stage"><div class="bomb-orb">✹</div><h2>${escape(nameOf(state.holder))}</h2><p class="muted">har bomben lige nu</p></div>`; break;
@@ -257,7 +259,7 @@
     $('player-room-label').textContent=`${me.name} · RUM ${room.code}`;
     const game=room.game; const mine=ownRound===game?.id ? own : {};
     const enrolled=game?.participants.includes(me.playerId);
-    const key=[game?.id,game?.phase,room.hostConnected,enrolled,game?.state.go,game?.state.holder,game?.state.attempt,game?.state.tie,game?.kind==='bomb'?room.players.filter(p=>p.connected).map(p=>p.id).join(','):'',!!mine.started,!!mine.submitted,!!mine.falseStart].join(':');
+    const key=[game?.id,game?.phase,room.hostConnected,enrolled,game?.state.go,game?.state.holder,game?.state.attempt,game?.state.tie,game?.kind==='bomb'?room.players.filter(p=>p.connected).map(p=>p.id).join(','):'',game?.kind==='catch'?`${mine.hits}:${mine.x}:${mine.y}`:'',!!mine.started,!!mine.submitted,!!mine.falseStart].join(':');
     if (key !== renderKey) {
       renderKey=key;
       let html=!room.hostConnected?'<div class="notice host-missing">Værten er offline. Runden fortsætter, og værten kan vende tilbage.</div>':'';
@@ -277,6 +279,7 @@
           case 'reaction': html+=mine.submitted?submitted(mine.falseStart?'Tyvstart! Vent på NU næste gang.':'Din reaktion er registreret.'): `<button id="react" class="action-pad ${game.state.go?'':'wait-pad'}"><span class="pad-symbol">ϟ</span>${game.state.go?'NU! TRYK!':'VENT …'}</button><p style="margin-top:22px">${game.state.go?'Så hurtigt du kan!':'Tryk først, når knappen bliver grøn.'}</p>`; break;
           case 'math': html+=mine.submitted?submitted():`<div class="eyebrow">${game.state.question}/${game.state.totalQuestions}</div><p class="expression" style="font-size:48px;color:var(--lime)">${escape(game.state.expression)}</p><form id="answer-form"><label for="answer">Dit svar</label><input id="answer" type="text" inputmode="numeric" pattern="[0-9]+" maxlength="6" autocomplete="off" required /><button class="button primary full">Send svar →</button></form>`; break;
           case 'pattern': html+=mine.submitted?submitted():`<div class="pattern-sequence">${game.state.sequence?.map(n=>n===null?'?':n).join(' · ') || '…'}</div><form id="answer-form"><label for="answer">Dit svar</label><input id="answer" type="text" inputmode="numeric" pattern="-?[0-9]+" maxlength="8" autocomplete="off" required /><button class="button primary full">Send svar →</button></form>`; break;
+          case 'catch': html+=`<p>Fang cirklen 10 gange. Din samlede tid tæller.</p><div class="catch-field"><button class="catch-target" data-catch style="left:${mine.x ?? 50}%;top:${mine.y ?? 50}%" aria-label="Fang cirklen"></button></div><p class="muted">${mine.hits || 0}/10</p>`; break;
           case 'duel': html+=!game.state.selected.includes(me.playerId)?'<div class="submitted-mark">⚔</div><p>Se duellen på den store skærm.</p>':game.state.tie?'<p>Uafgjort! Gør dig klar til at vælge igen …</p>':mine.submitted?submitted('Dit valg er hemmeligt. Vi venter på din modstander.'):'<p>Vælg i hemmelighed.</p><div class="choice-grid"><button class="choice-button" data-choice="rock">✊ <span>Sten</span></button><button class="choice-button" data-choice="paper">✋ <span>Papir</span></button><button class="choice-button" data-choice="scissors">✌️ <span>Saks</span></button></div>'; break;
           case 'wheel': html+='<div class="submitted-mark">✳</div><p>Hjulet drejer …<br />Kig op på den store skærm.</p>'; break;
           case 'bomb': html+=game.state.holder===me.playerId?`<h2 style="color:var(--danger);margin-bottom:20px">DU HAR BOMBEN!</h2><p>Send den videre. Hurtigt!</p><div class="pass-grid">${room.players.filter(p=>p.connected&&p.id!==me.playerId&&game.participants.includes(p.id)).map(p=>`<button data-pass="${p.id}">${escape(p.name)} ↗</button>`).join('')}</div><p class="privacy-note">Vent et kort øjeblik mellem afleveringer. Ingen øjeblikkelig returpasning.</p>`:`<div class="submitted-mark">✓</div><h2>I sikkerhed. Lige nu.</h2><p style="margin-top:20px">${escape(nameOf(game.state.holder))} har bomben.</p>`; break;
@@ -304,6 +307,7 @@
       if(!await act(`choose:${game.state.attempt}`,button.dataset.choice)){renderKey='';renderPlayer();}
     }));
     document.querySelectorAll('[data-pass]').forEach(button=>button.addEventListener('click',()=>{act('pass',button.dataset.pass);buzz(25);}));
+    document.querySelector('[data-catch]')?.addEventListener('click', event=>{ event.currentTarget.disabled=true; act('hit'); buzz(15); });
   }
   function updateClocks() {
     document.querySelectorAll('[data-countdown]').forEach(el=>{
