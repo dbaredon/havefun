@@ -26,6 +26,7 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
             room.PreviousGame = kind;
             room.Round++;
             room.NextRoundAt = null;
+            room.ResultsStartedAt = null;
             room.LastActivity = now;
         }
     }
@@ -77,11 +78,12 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
                     player.Score += result.Points;
                 }
                 room.ArchivedRounds[game.Id] = Snapshots.CaptureRound(room, "Completed", Results(room));
+                room.ResultsStartedAt = now;
                 room.LastActivity = now;
             }
             if (game.Phase(now) == "Results" && room.QuickPlay && room.HostConnections.Count > 0 && room.Players.Values.Any(p => p.Connected))
             {
-                room.NextRoundAt ??= now.AddSeconds(10);
+                room.NextRoundAt ??= (room.ResultsStartedAt ?? now).AddSeconds(15);
                 if (now >= room.NextRoundAt) Start(room, null, true, room.Settings);
             }
             else if (room.HostConnections.Count == 0) room.NextRoundAt = null;
@@ -109,7 +111,7 @@ public sealed class GameManager(GameCatalog catalog, TimeProvider clock)
         return new
         {
             code = room.Code, serverNow = now, hostConnected = room.HostConnections.Count > 0, round = room.Round,
-            quickPlay = room.QuickPlay, nextRoundAt = room.NextRoundAt, settings = room.Settings,
+            quickPlay = room.QuickPlay, nextRoundAt = room.NextRoundAt, resultsStartedAt = room.ResultsStartedAt, settings = room.Settings,
             recovered = room.Recovered,
             history = forHost ? room.ArchivedRounds.Values.OrderByDescending(r => r.Round.Number).Take(30).Select(r => new {
                 r.Round.Number, r.Round.Kind, r.Round.Status,

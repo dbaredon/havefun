@@ -124,7 +124,6 @@
   function settings() { return { clickSeconds: 10 }; }
   async function start(kind, quick) { await invoke('Start', kind, quick, settings()); }
   $('quick-start')?.addEventListener('click', () => start(null, true));
-  $('next-game')?.addEventListener('click', () => start(null, true));
   $('back-lobby')?.addEventListener('click', () => invoke('Lobby'));
   $('pause')?.addEventListener('click', () => invoke('Pause'));
   $('copy-link')?.addEventListener('click', async () => {
@@ -162,9 +161,13 @@
     const top = game.results.find(r => r.winner) || game.results.find(r => r.bottom) || game.results[0];
     const title = game.kind === 'wheel' ? `${escape(top?.name)} — det blev dig!` : game.kind === 'bomb' ? `${escape(game.results.find(r=>r.bottom)?.name)} fik bomben!` : top?.winner ? `${escape(top.name)} tager den!` : 'Sikke en runde!';
     const duelReveal = game.kind === 'duel' ? `<div class="duel-stage">${game.state.selected.map((id,i)=>`${i?'<div class="versus">VS</div>':''}<div class="duelist"><h2>${escape(nameOf(id))}</h2><span class="duel-choice">${choiceSymbol(game.state.choices?.[id])}</span></div>`).join('')}</div>` : '';
+    const elapsed = room.resultsStartedAt ? Math.max(0, now() - Date.parse(room.resultsStartedAt)) : 0;
     const roundBoard = `<section class="scoreboard"><h2>Rundens leaderboard</h2>${game.results.map((r,i)=>`<div class="score-line"><span>${r.rank}. ${escape(r.name)}</span><span>${r.points ? `+${r.points} point · ` : ''}${escape(r.detail)}</span></div>`).join('')}</section>`;
     const totalBoard = `<section class="scoreboard"><h2>Samlet leaderboard</h2><p class="muted">Point fra alle runder</p>${[...room.players].sort((a,b)=>b.score-a.score).map((p,i)=>`<div class="score-line"><span>${i+1}. ${escape(p.name)}</span><strong>${p.score} point</strong></div>`).join('')}</section>`;
-    return `<div class="results-title"><div class="eyebrow">RUNDE ${room.round} · ${games[game.kind][0]}</div><h1>${title}</h1>${game.kind==='math'?`<p class="muted">${escape(game.state.expression)} = ${game.state.answer}</p>`:''}</div>${duelReveal}<div class="results-list">${game.results.map((r,i)=>`<div class="result-row ${r.winner?'winner':''} ${r.bottom?'bottom':''}" style="animation-delay:${Math.min(i,20)*60}ms"><span class="rank">${r.winner?'✦':r.rank}</span><div class="result-person"><strong>${escape(r.name)}</strong>${r.points?`<small>+${r.points} point</small>`:''}</div><div class="result-detail">${escape(r.detail)}</div></div>`).join('')}</div>${roundBoard}${totalBoard}`;
+    const spotlightResults = [top, [...game.results].reverse().find(r => r.playerId !== top?.playerId) || top].filter(Boolean);
+    const spotlight = `<div class="results-list">${spotlightResults.map((r,i)=>`<div class="result-row ${i===0?'winner':'bottom'}"><span class="rank">${i===0?'✦':'!'}</span><div class="result-person"><strong>${escape(r.name)}</strong>${r.points?`<small>+${r.points} point</small>`:''}</div><div class="result-detail">${escape(r.detail)}</div></div>`).join('')}</div>`;
+    const body = elapsed < 10000 ? `${duelReveal}${spotlight}<p class="muted" style="text-align:center">Leaderboardet kommer om ${Math.max(0, 10 - Math.floor(elapsed / 1000))} sekunder.</p>` : `${roundBoard}${totalBoard}`;
+    return `<div class="results-title"><div class="eyebrow">RUNDE ${room.round} · ${games[game.kind][0]}</div><h1>${title}</h1>${game.kind==='math'?`<p class="muted">${escape(game.state.expression)} = ${game.state.answer}</p>`:''}</div>${body}`;
   }
   function renderHost() {
     $('host-error').hidden = true;
@@ -192,7 +195,7 @@
     $('result-actions').hidden = game.phase !== 'Results';
     $('pause').hidden = !room.quickPlay;
     const state = game.state;
-    const key = [game.id,game.phase,game.kind==='reaction'?state.go:'',game.kind==='bomb'?state.holder:'',game.kind==='duel'?`${state.attempt}:${state.tie}:${JSON.stringify(state.choices)}`:''].join(':');
+    const key = [game.id,game.phase,game.phase==='Results' ? Math.floor((now() - Date.parse(room.resultsStartedAt || room.serverNow)) / 1000) : '',game.kind==='reaction'?state.go:'',game.kind==='bomb'?state.holder:'',game.kind==='duel'?`${state.attempt}:${state.tie}:${JSON.stringify(state.choices)}`:''].join(':');
     if (key !== renderKey) {
       renderKey = key;
       let html = '';

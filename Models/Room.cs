@@ -43,6 +43,7 @@ public sealed class Room(string code, string hostToken, DateTimeOffset now, bool
     public int Round { get; set; }
     public bool QuickPlay { get; set; }
     public DateTimeOffset? NextRoundAt { get; set; }
+    public DateTimeOffset? ResultsStartedAt { get; set; }
     public DateTimeOffset LastActivity { get; set; } = now;
     public bool Closed { get; set; }
     public RoomSettings Settings { get; set; } = new();
